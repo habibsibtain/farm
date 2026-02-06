@@ -1,9 +1,0 @@
-{
-  "name": "Kisan Sahayak - Smart Farming",
-  "description": "A multilingual, AI-powered agricultural advisory app for Indian farmers providing real-time crop advice, pest detection, and market insights.",
-  "requestFramePermissions": [
-    "camera",
-    "microphone",
-    "geolocation"
-  ]
-}
