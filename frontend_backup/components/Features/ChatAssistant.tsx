@@ -280,7 +280,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
         <View style={styles.inputArea}>
           <TouchableOpacity onPress={toggleListening} style={styles.micBtn}>
             {isListening ? (
-              <MicOff size={20} color="#ef4444" />
+              <MicOff size={20} color="#b45309" />
             ) : (
               <Mic size={20} color="#64748b" />
             )}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import { Camera, X, AlertTriangle, ScanLine, Bug } from 'lucide-react-native';
+import { Camera, X, AlertTriangle, Bug } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { identifyPestFromImage } from '../../services/geminiService';
 import { Language } from '../../types';
@@ -20,7 +20,12 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (permissionResult.granted === false) {
-      Alert.alert("Permission Required", "You need to grant camera roll permissions to make this work!");
+      Alert.alert(
+        language === Language.HINDI ? "अनुमति ज़रूरी" : "Permission needed",
+        language === Language.HINDI
+          ? "कृपया फोटो चुनने की अनुमति दें ताकि हम फसल की तस्वीर देख सकें।"
+          : "Please allow photo access so we can gently check your crop picture."
+      );
       return;
     }
 
@@ -42,7 +47,12 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
   const takePhoto = async () => {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
      if (permissionResult.granted === false) {
-      Alert.alert("Permission Required", "You need to grant camera permissions!");
+      Alert.alert(
+        language === Language.HINDI ? "अनुमति ज़रूरी" : "Permission needed",
+        language === Language.HINDI
+          ? "कृपया कैमरा की अनुमति दें ताकि आप फसल की तस्वीर ले सकें।"
+          : "Please allow camera access so you can take a clear picture of your crop."
+      );
       return;
     }
     
@@ -83,7 +93,11 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
       const responseText = await identifyPestFromImage(base64Data, language);
       parseResponse(responseText);
     } catch (error) {
-      setRawText("Error analyzing image. Please try again.");
+      setRawText(
+        language === Language.HINDI
+          ? "तस्वीर की जाँच अभी पूरी नहीं हो सकी। कृपया इंटरनेट जाँचकर दोबारा कोशिश करें।"
+          : "We couldn’t complete the check right now. Please check your internet and try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -156,7 +170,7 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
           <View style={styles.resultCard}>
             <View style={styles.resultHeader}>
               <View style={styles.warningIcon}>
-                <AlertTriangle size={24} color="#ef4444" />
+                <AlertTriangle size={24} color="#b45309" />
               </View>
               <Text style={styles.resultTitle}>
                 {language === Language.HINDI ? 'जांच परिणाम' : 'Diagnosis Result'}
@@ -311,9 +325,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#fef2f2',
+    backgroundColor: '#fffbeb',
     borderBottomWidth: 1,
-    borderBottomColor: '#fee2e2',
+    borderBottomColor: '#fef3c7',
     gap: 12,
   },
   warningIcon: {

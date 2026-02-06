@@ -1,0 +1,6 @@
+{
+  "expo": {
+    "scheme": "myfarm",
+    "plugins": ["expo-router"]
+  }
+}

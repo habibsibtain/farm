@@ -47,7 +47,7 @@ const HomeView: React.FC<HomeViewProps> = ({ language, setView }) => {
           {language === Language.HINDI ? 'नमस्ते, किसान!' : 'Namaste, Farmer!'}
         </Text>
         <Text style={styles.subWelcome}>
-          {language === Language.HINDI ? 'आज का मौसम अपडेट' : "Here's your daily update"}
+          {language === Language.HINDI ? 'आइए, आज की खेती की तैयारी देखें।' : "Let’s gently plan for your farm today."}
         </Text>
       </View>
 

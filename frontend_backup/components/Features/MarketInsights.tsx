@@ -37,7 +37,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
   const getTrendIcon = (trend: string) => {
     switch (trend) {
       case 'UP': return <TrendingUp size={20} color="#16a34a" />;
-      case 'DOWN': return <TrendingDown size={20} color="#ef4444" />;
+      case 'DOWN': return <TrendingDown size={20} color="#b45309" />;
       default: return <Minus size={20} color="#94a3b8" />;
     }
   };

@@ -19,7 +19,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ language }) => {
 
   return (
     <LinearGradient
-      colors={['#3b82f6', '#2563eb']}
+      colors={['#38bdf8', '#0ea5e9']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.container}
