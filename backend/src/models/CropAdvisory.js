@@ -36,11 +36,6 @@ const cropAdvisorySchema = new mongoose.Schema({
   advisoryText: {
     type: String,
     required: true,
-  },
-  source: {
-    type: String,
-    enum: ["AI Model", "Expert", "Rule-Based"],
-    default: "AI Model"
   }
 },{
   timestamps: true
