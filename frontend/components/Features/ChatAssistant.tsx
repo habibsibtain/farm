@@ -198,7 +198,11 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
+    >
       {/* Utility Bar */}
       <View style={styles.utilityBar}>
         {showSearch ? (
@@ -264,6 +268,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
+        keyboardShouldPersistTaps="handled"
         ListFooterComponent={
           loading ? (
             <View style={styles.loaderContainer}>
@@ -273,42 +278,37 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
         }
       />
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
-      >
-        <View style={styles.inputArea}>
-          <TouchableOpacity onPress={toggleListening} style={styles.micBtn}>
-            {isListening ? (
-              <MicOff size={20} color="#b45309" />
-            ) : (
-              <Mic size={20} color="#64748b" />
-            )}
-          </TouchableOpacity>
+      <View style={styles.inputArea}>
+        <TouchableOpacity onPress={toggleListening} style={styles.micBtn}>
+          {isListening ? (
+            <MicOff size={20} color="#b45309" />
+          ) : (
+            <Mic size={20} color="#64748b" />
+          )}
+        </TouchableOpacity>
 
-          <TextInput
-            value={input}
-            onChangeText={setInput}
-            placeholder={
-              language === Language.HINDI ? "यहाँ लिखें..." : "Type here..."
-            }
-            style={styles.input}
-            onSubmitEditing={handleSend}
-          />
+        <TextInput
+          value={input}
+          onChangeText={setInput}
+          placeholder={
+            language === Language.HINDI ? "यहाँ लिखें..." : "Type here..."
+          }
+          style={styles.input}
+          onSubmitEditing={handleSend}
+        />
 
-          <TouchableOpacity
-            onPress={handleSend}
-            disabled={!input.trim() || loading}
-            style={[
-              styles.sendBtn,
-              (!input.trim() || loading) && styles.disabledSendBtn,
-            ]}
-          >
-            <Send size={18} color="#ffffff" />
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
-    </View>
+        <TouchableOpacity
+          onPress={handleSend}
+          disabled={!input.trim() || loading}
+          style={[
+            styles.sendBtn,
+            (!input.trim() || loading) && styles.disabledSendBtn,
+          ]}
+        >
+          <Send size={18} color="#ffffff" />
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
   );
 };
 
