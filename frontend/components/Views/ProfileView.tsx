@@ -247,7 +247,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
           village: landVillage.trim(),
         },
         landsize: numericSize,
-        soiltype,
+        soiltype: soilType!,
         irrigationtype: irrigationType,
         cropsgrown: cropsText
           .split(",")
