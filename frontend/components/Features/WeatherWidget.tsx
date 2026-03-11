@@ -3,18 +3,24 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Sun, Wind, Droplets, MapPin } from 'lucide-react-native';
 import { Language } from '../../types';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useWeather } from '@/hooks/useWeather';
+import { useUserLocation } from '@/hooks/useUserLocation';
 
 interface WeatherWidgetProps {
   language: Language;
 }
 
+
 const WeatherWidget: React.FC<WeatherWidgetProps> = ({ language }) => {
+  const {location, errorMsg} = useUserLocation();
+
+  const { weatherdata, forecast, loading, error } = useWeather(location?.lat || 30.2110, location?.lon || 74.9455); 
   const weather = {
-    temp: 28,
-    condition: language === Language.HINDI ? 'आंशिक बादल' : 'Partly Cloudy',
-    humidity: 65,
-    wind: 12,
-    location: language === Language.HINDI ? 'बठिंडा, पंजाब' : 'Bathinda, Punjab'
+    city: weatherdata?.city || (language === Language.HINDI ? 'बठिंडा' : 'Bathinda'),
+    temp: weatherdata?.temp ? Math.round(weatherdata.temp - 273.15) : '--',
+    condition: weatherdata?.condition ? weatherdata.condition.charAt(0).toUpperCase() + weatherdata.condition.slice(1) : '--',
+    humidity: weatherdata?.humidity ? `${weatherdata.humidity}%` : '--',
+    wind: weatherdata?.wind ? `${weatherdata.wind} km/h` : '--',
   };
 
   return (
@@ -28,7 +34,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ language }) => {
         <View>
           <View style={styles.locationRow}>
             <MapPin size={14} color="#dbeafe" />
-            <Text style={styles.locationText}>{weather.location}</Text>
+            <Text style={styles.locationText}>{weather.city}</Text>
           </View>
           <Text style={styles.tempText}>{weather.temp}°C</Text>
           <Text style={styles.conditionText}>{weather.condition}</Text>
@@ -44,14 +50,14 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ language }) => {
           <Droplets size={18} color="#bfdbfe" />
           <View>
             <Text style={styles.statLabel}>Humidity</Text>
-            <Text style={styles.statValue}>{weather.humidity}%</Text>
+            <Text style={styles.statValue}>{weather.humidity}</Text>
           </View>
         </View>
         <View style={styles.statItem}>
           <Wind size={18} color="#bfdbfe" />
           <View>
             <Text style={styles.statLabel}>Wind</Text>
-            <Text style={styles.statValue}>{weather.wind} km/h</Text>
+            <Text style={styles.statValue}>{weather.wind} </Text>
           </View>
         </View>
       </View>
