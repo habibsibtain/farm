@@ -1,4 +1,5 @@
 import { Language } from "../types";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Central API config
 // NOTE: Backend base URL is read from environment variables to avoid hard‑coding.
@@ -33,6 +34,12 @@ export interface LoginResponse {
   message: string;
   token: string;
   user: ApiUser;
+}
+
+export interface OtpChallengeResponse {
+  message: string;
+  challengeId: string;
+  phone: string;
 }
 
 export interface RegisterResponse {
@@ -87,25 +94,35 @@ export interface ApiGenericMessage {
   message: string;
 }
 
-const getStoredToken = (): string | null => {
-  if (typeof window === "undefined") return null;
+let inMemoryToken: string | null = null;
+
+const getStoredToken = (): string | null => inMemoryToken;
+
+const saveToken = (token: string | null) => {
+  inMemoryToken = token;
+};
+
+const bootstrapToken = async (): Promise<string | null> => {
   try {
-    return window.localStorage.getItem(AUTH_TOKEN_KEY);
+    const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+    inMemoryToken = token;
+    return token;
   } catch {
+    inMemoryToken = null;
     return null;
   }
 };
 
-const saveToken = (token: string | null) => {
-  if (typeof window === "undefined") return;
+const persistToken = async (token: string | null): Promise<void> => {
+  saveToken(token);
   try {
     if (!token) {
-      window.localStorage.removeItem(AUTH_TOKEN_KEY);
+      await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
     } else {
-      window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+      await AsyncStorage.setItem(AUTH_TOKEN_KEY, token);
     }
   } catch {
-    // If storage fails, do not surface a technical error to the farmer.
+    // Storage write failures should not crash the app.
   }
 };
 
@@ -159,15 +176,37 @@ async function request<T>(
 
 export const authService = {
   getStoredToken,
-  saveToken,
+  saveToken: persistToken,
+  bootstrapToken,
 
   async login(phone: string, password: string): Promise<LoginResponse> {
     const data = await request<LoginResponse>("/auth/login", "POST", {
       phone,
       password,
     });
-    // Persist token for subsequent calls
-    saveToken(data.token);
+    await persistToken(data.token);
+    return data;
+  },
+
+  async requestLoginOtp(
+    phone: string,
+    password: string
+  ): Promise<OtpChallengeResponse> {
+    return request<OtpChallengeResponse>("/auth/login/request-otp", "POST", {
+      phone,
+      password,
+    });
+  },
+
+  async verifyLoginOtp(
+    challengeId: string,
+    otp: string
+  ): Promise<LoginResponse> {
+    const data = await request<LoginResponse>("/auth/login/verify-otp", "POST", {
+      challengeId,
+      otp,
+    });
+    await persistToken(data.token);
     return data;
   },
 
@@ -185,13 +224,13 @@ export const authService = {
       role: "farmer",
       language,
     });
-    saveToken(data.token);
+    await persistToken(data.token);
     return data;
   },
 
   async logout(): Promise<ApiGenericMessage> {
     const res = await request<ApiGenericMessage>("/auth/logout", "POST");
-    saveToken(null);
+    await persistToken(null);
     return res;
   },
 

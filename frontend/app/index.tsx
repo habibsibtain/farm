@@ -1,7 +1,7 @@
 import React from "react";
 import { Redirect } from "expo-router";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
-import { authService } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 /**
  * Entry screen that decides where to send the user first:
@@ -12,14 +12,29 @@ import { authService } from "../services/api";
  * while returning farmers land directly on their familiar home.
  */
 export default function Index() {
-  // Synchronous token check is enough here because our storage lookup
-  // is lightweight and guarded for native/web.
-  const token = authService.getStoredToken();
+  const { status } = useAuth();
 
-  if (token) {
+  if (status === "loading") {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#16a34a" />
+      </View>
+    );
+  }
+
+  if (status === "authenticated") {
     return <Redirect href="/(tabs)" />;
   }
 
-  return <Redirect href="/register" />;
+  return <Redirect href="/login" />;
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f8fafc",
+  },
+});
 
