@@ -42,6 +42,13 @@ export interface OtpChallengeResponse {
   phone: string;
 }
 
+export interface RegisterOtpRequest {
+  name: string;
+  phone: string;
+  password: string;
+  language: string;
+}
+
 export interface RegisterResponse {
   message: string;
   token: string;
@@ -210,6 +217,29 @@ export const authService = {
     return data;
   },
 
+  async requestRegisterOtp(payload: RegisterOtpRequest): Promise<OtpChallengeResponse> {
+    return request<OtpChallengeResponse>("/auth/register/request-otp", "POST", payload);
+  },
+
+  async resendRegisterOtp(challengeId: string): Promise<OtpChallengeResponse> {
+    return request<OtpChallengeResponse>("/auth/register/resend-otp", "POST", {
+      challengeId,
+    });
+  },
+
+  async verifyRegisterOtp(
+    challengeId: string,
+    otp: string
+  ): Promise<RegisterResponse> {
+    const data = await request<RegisterResponse>("/auth/register/verify-otp", "POST", {
+      challengeId,
+      otp,
+    });
+    await persistToken(data.token);
+    return data;
+  },
+
+  // Backward compatibility for screens that still call direct register.
   async register(
     name: string,
     phone: string,
@@ -220,7 +250,6 @@ export const authService = {
       name,
       phone,
       password,
-      // default to farmer-friendly role on backend if not provided
       role: "farmer",
       language,
     });

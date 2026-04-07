@@ -7,12 +7,14 @@ import {
   TrendingUp,
   User,
 } from "lucide-react-native";
+import { useLanguage } from "../../context/LanguageContext";
 
 /**
  * Bottom tab navigator for main farmer flows.
  * Uses soft greens and calm tones to keep the app feeling like a companion.
  */
 export default function TabsLayout() {
+  const { t } = useLanguage();
   return (
     <Tabs
       screenOptions={{
@@ -35,7 +37,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: t("tabs.home"),
           tabBarIcon: ({ color, size }) => (
             <Home size={size} color={color} strokeWidth={2.3} />
           ),
@@ -44,7 +46,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="chat"
         options={{
-          title: "Sahayak",
+          title: t("tabs.assistant"),
           tabBarIcon: ({ color, size }) => (
             <MessageSquare size={size} color={color} strokeWidth={2.3} />
           ),
@@ -53,7 +55,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="pest-doctor"
         options={{
-          title: "Scan",
+          title: t("tabs.scan"),
           tabBarIcon: ({ color, size }) => (
             <ScanLine size={size} color={color} strokeWidth={2.3} />
           ),
@@ -62,7 +64,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="market"
         options={{
-          title: "Mandi",
+          title: t("tabs.market"),
           tabBarIcon: ({ color, size }) => (
             <TrendingUp size={size} color={color} strokeWidth={2.3} />
           ),
@@ -71,7 +73,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="my-farm"
         options={{
-          title: "My Farm",
+          title: t("tabs.myFarm"),
           tabBarIcon: ({ color, size }) => (
             <User size={size} color={color} strokeWidth={2.3} />
           ),

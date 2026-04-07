@@ -12,6 +12,8 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
 import {
   Send,
@@ -198,13 +200,14 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
-    >
-      {/* Utility Bar */}
-      <View style={styles.utilityBar}>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
+      >
+        {/* Utility Bar */}
+        <View style={styles.utilityBar}>
         {showSearch ? (
           <View style={styles.searchContainer}>
             <View style={styles.searchInputWrapper}>
@@ -260,55 +263,56 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
             </View>
           </>
         )}
-      </View>
+        </View>
 
-      <FlatList
-        ref={flatListRef}
-        data={displayedMessages}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        keyboardShouldPersistTaps="handled"
-        ListFooterComponent={
-          loading ? (
-            <View style={styles.loaderContainer}>
-              <ActivityIndicator color="#16a34a" />
-            </View>
-          ) : null
-        }
-      />
-
-      <View style={styles.inputArea}>
-        <TouchableOpacity onPress={toggleListening} style={styles.micBtn}>
-          {isListening ? (
-            <MicOff size={20} color="#b45309" />
-          ) : (
-            <Mic size={20} color="#64748b" />
-          )}
-        </TouchableOpacity>
-
-        <TextInput
-          value={input}
-          onChangeText={setInput}
-          placeholder={
-            language === Language.HINDI ? "यहाँ लिखें..." : "Type here..."
+        <FlatList
+          ref={flatListRef}
+          data={displayedMessages}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          keyboardShouldPersistTaps="handled"
+          ListFooterComponent={
+            loading ? (
+              <View style={styles.loaderContainer}>
+                <ActivityIndicator color="#16a34a" />
+              </View>
+            ) : null
           }
-          style={styles.input}
-          onSubmitEditing={handleSend}
         />
 
-        <TouchableOpacity
-          onPress={handleSend}
-          disabled={!input.trim() || loading}
-          style={[
-            styles.sendBtn,
-            (!input.trim() || loading) && styles.disabledSendBtn,
-          ]}
-        >
-          <Send size={18} color="#ffffff" />
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+        <View style={styles.inputArea}>
+          <TouchableOpacity onPress={toggleListening} style={styles.micBtn}>
+            {isListening ? (
+              <MicOff size={20} color="#b45309" />
+            ) : (
+              <Mic size={20} color="#64748b" />
+            )}
+          </TouchableOpacity>
+
+          <TextInput
+            value={input}
+            onChangeText={setInput}
+            placeholder={
+              language === Language.HINDI ? "यहाँ लिखें..." : "Type here..."
+            }
+            style={styles.input}
+            onSubmitEditing={handleSend}
+          />
+
+          <TouchableOpacity
+            onPress={handleSend}
+            disabled={!input.trim() || loading}
+            style={[
+              styles.sendBtn,
+              (!input.trim() || loading) && styles.disabledSendBtn,
+            ]}
+          >
+            <Send size={18} color="#ffffff" />
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 };
 

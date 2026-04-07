@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -11,6 +10,7 @@ import {
   Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { Language } from "../../types";
 import {
   authService,
@@ -691,10 +691,11 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
     >
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
         keyboardShouldPersistTaps="handled"
+        enableOnAndroid
       >
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -758,7 +759,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
           </Text>
         </View>
       )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </KeyboardAvoidingView>
   );
 };
@@ -769,6 +770,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8fafc",
   },
   contentContainer: {
+    flexGrow: 1,
     padding: 16,
     paddingBottom: 40,
   },

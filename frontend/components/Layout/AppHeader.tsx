@@ -1,8 +1,9 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Sprout } from "lucide-react-native";
+import { Picker } from "@react-native-picker/picker";
 import { useLanguage } from "../../context/LanguageContext";
-import { Language } from "../../types";
+import { SUPPORTED_LANGUAGES } from "../../i18n";
 
 /**
  * Shared app header used across tab screens.
@@ -10,29 +11,29 @@ import { Language } from "../../types";
  * that previously lived in App.tsx.
  */
 const AppHeader: React.FC = () => {
-  const { language, cycleLanguage } = useLanguage();
-
-  const languageLabel =
-    language === Language.ENGLISH
-      ? "English"
-      : language === Language.HINDI
-      ? "हिंदी"
-      : language === Language.PUNJABI
-      ? "ਪੰਜਾਬੀ"
-      : "తెలుగు";
+  const { language, changeLanguage, t } = useLanguage();
 
   return (
     <View style={styles.header}>
       <View style={styles.logoContainer}>
         <Sprout size={28} color="#16a34a" strokeWidth={2.5} />
         <Text style={styles.title}>
-          Kisan<Text style={styles.titleHighlight}>Sahayak</Text>
+          {t("appName")}
         </Text>
       </View>
-
-      <Text onPress={cycleLanguage} style={styles.langButton}>
-        {languageLabel}
-      </Text>
+      <View style={styles.langPickerWrap}>
+        <Picker
+          selectedValue={language}
+          onValueChange={(value) => {
+            void changeLanguage(String(value));
+          }}
+          style={styles.langPicker}
+        >
+          {SUPPORTED_LANGUAGES.map((lang) => (
+            <Picker.Item key={lang.code} label={lang.label} value={lang.code} />
+          ))}
+        </Picker>
+      </View>
     </View>
   );
 };
@@ -54,21 +55,20 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "bold",
     color: "#0f172a",
   },
-  titleHighlight: {
-    color: "#16a34a",
-  },
-  langButton: {
-    fontSize: 14,
-    color: "#1e293b",
-    padding: 8,
+  langPickerWrap: {
+    minWidth: 130,
+    height: 40,
     backgroundColor: "#f1f5f9",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
     borderRadius: 8,
-    overflow: "hidden",
+    justifyContent: "center",
   },
+  langPicker: { height: 40, width: "100%" },
 });
 
 export default AppHeader;
