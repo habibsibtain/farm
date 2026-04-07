@@ -1,0 +1,30 @@
+{
+  "appName": "Kisan Sahayak",
+  "tabs": {
+    "home": "Home",
+    "assistant": "Sahayak",
+    "scan": "Scan",
+    "market": "Mandi",
+    "myFarm": "My Farm"
+  },
+  "auth": {
+    "login": "Login",
+    "phone": "Phone number",
+    "password": "Password",
+    "loginButton": "Login",
+    "newUserSignup": "New User? Sign Up",
+    "createAccount": "Create account",
+    "name": "Full Name",
+    "confirmPassword": "Confirm Password",
+    "showPassword": "Show Password",
+    "preferredLanguage": "Preferred Language",
+    "next": "Next",
+    "alreadyRegistered": "Already registered? Login",
+    "verifyOtp": "Verify OTP",
+    "otpSentTo": "OTP sent to {{phone}}",
+    "enterOtp": "Enter 6-digit OTP",
+    "verifyOtpButton": "Verify OTP",
+    "resendOtp": "Resend OTP",
+    "resendIn": "Resend OTP in {{seconds}}s"
+  }
+}
