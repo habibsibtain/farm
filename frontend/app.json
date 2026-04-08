@@ -1,6 +1,12 @@
 {
   "expo": {
+    "name": "Kisan Sahayak",
+    "slug": "kisan-sahayak",
+    "version": "1.0.0",
     "scheme": "myfarm",
-    "plugins": ["expo-router"]
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }

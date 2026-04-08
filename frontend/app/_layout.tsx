@@ -8,6 +8,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { Stack } from "expo-router";
 import { LanguageProvider } from "../context/LanguageContext";
+import { AuthProvider } from "../context/AuthContext";
 
 /**
  * Root layout for Expo Router.
@@ -16,15 +17,17 @@ import { LanguageProvider } from "../context/LanguageContext";
 export default function RootLayout() {
   return (
     <LanguageProvider>
-      <SafeAreaView style={styles.container}>
-        <StatusBar style="dark" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: "#f8fafc" },
-          }}
-        />
-      </SafeAreaView>
+      <AuthProvider>
+        <SafeAreaView style={styles.container}>
+          <StatusBar style="dark" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: "#f8fafc" },
+            }}
+          />
+        </SafeAreaView>
+      </AuthProvider>
     </LanguageProvider>
   );
 }

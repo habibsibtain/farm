@@ -12,6 +12,8 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
 import {
   Send,
@@ -198,9 +200,14 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Utility Bar */}
-      <View style={styles.utilityBar}>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
+      >
+        {/* Utility Bar */}
+        <View style={styles.utilityBar}>
         {showSearch ? (
           <View style={styles.searchContainer}>
             <View style={styles.searchInputWrapper}>
@@ -256,27 +263,24 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
             </View>
           </>
         )}
-      </View>
+        </View>
 
-      <FlatList
-        ref={flatListRef}
-        data={displayedMessages}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        ListFooterComponent={
-          loading ? (
-            <View style={styles.loaderContainer}>
-              <ActivityIndicator color="#16a34a" />
-            </View>
-          ) : null
-        }
-      />
+        <FlatList
+          ref={flatListRef}
+          data={displayedMessages}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          keyboardShouldPersistTaps="handled"
+          ListFooterComponent={
+            loading ? (
+              <View style={styles.loaderContainer}>
+                <ActivityIndicator color="#16a34a" />
+              </View>
+            ) : null
+          }
+        />
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
-      >
         <View style={styles.inputArea}>
           <TouchableOpacity onPress={toggleListening} style={styles.micBtn}>
             {isListening ? (
@@ -308,7 +312,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-    </View>
+    </TouchableWithoutFeedback>
   );
 };
 

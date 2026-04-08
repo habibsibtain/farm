@@ -9,8 +9,13 @@ export enum AppView {
 export enum Language {
   ENGLISH = 'en',
   HINDI = 'hi',
+  MARATHI = 'mr',
+  ODIA = 'or',
   PUNJABI = 'pa',
-  TELUGU = 'te'
+  TELUGU = 'te',
+  TAMIL = 'ta',
+  KANNADA = 'kn',
+  BENGALI = 'bn',
 }
 
 export interface ChatMessage {

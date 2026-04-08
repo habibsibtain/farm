@@ -4,12 +4,16 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@google/genai": "^1.40.0",
+    "@react-native-async-storage/async-storage": "^3.0.2",
+    "@react-native-picker/picker": "^2.11.4",
     "expo": "^54.0.33",
     "expo-image-picker": "^17.0.10",
     "expo-linear-gradient": "^15.0.8",
@@ -17,17 +21,21 @@
     "expo-router": "~6.0.23",
     "expo-speech": "^14.0.8",
     "expo-status-bar": "^3.0.9",
+    "i18n-js": "^4.5.3",
     "lucide-react": "^0.563.0",
     "lucide-react-native": "^0.563.0",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-native": "^0.83.1",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-keyboard-aware-scroll-view": "^0.9.5",
     "react-native-safe-area-context": "~5.6.0",
-    "react-native-screens": "~4.16.0"
+    "react-native-screens": "~4.16.0",
+    "react-native-web": "0.21.0"
   },
   "devDependencies": {
+    "@expo/cli": "54.0.23",
     "@types/node": "^22.14.0",
-    "@types/react": "^19.2.13",
+    "@types/react": "~19.1.10",
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.9.2",
     "vite": "^6.2.0"

@@ -2,12 +2,15 @@ import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
+import { useRouter } from "expo-router";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { Language } from "../../types";
 import {
   authService,
@@ -31,6 +34,7 @@ interface ProfileViewProps {
 type AuthMode = "login" | "register";
 
 const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
+  const router = useRouter();
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -146,6 +150,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
       const res = await authService.login(phone.trim(), password.trim());
       setUser(res.user);
       await loadFarms(language);
+      // After a successful login, take the farmer gently to the main home.
+      router.replace("/(tabs)");
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("Login error", error);
@@ -180,6 +186,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
       );
       setUser(res.user);
       await loadFarms(language);
+      // New account created – guide the farmer to the main home experience.
+      router.replace("/(tabs)");
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("Register error", error);
@@ -247,7 +255,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
           village: landVillage.trim(),
         },
         landsize: numericSize,
-        soiltype,
+        soiltype: soilType!,
         irrigationtype: irrigationType,
         cropsgrown: cropsText
           .split(",")
@@ -678,10 +686,17 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
   };
 
   return (
-    <ScrollView
+    <KeyboardAvoidingView
       style={styles.container}
-      contentContainerStyle={styles.contentContainer}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
     >
+      <KeyboardAwareScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid
+      >
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.headerIconCircle}>
@@ -744,7 +759,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
           </Text>
         </View>
       )}
-    </ScrollView>
+      </KeyboardAwareScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -754,6 +770,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8fafc",
   },
   contentContainer: {
+    flexGrow: 1,
     padding: 16,
     paddingBottom: 40,
   },
