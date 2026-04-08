@@ -2,19 +2,27 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import WeatherWidget from '../Features/WeatherWidget';
 import { AppView, Language } from '../../types';
-import { MessageSquare, ScanLine, TrendingUp, ChevronRight } from 'lucide-react-native';
+import { MessageSquare, ScanLine, TrendingUp, ChevronRight, Sprout } from 'lucide-react-native';
 
 interface HomeViewProps {
   language: Language;
   setView: (view: AppView) => void;
+  userName?: string;
+  farmCount?: number;
 }
 
-const HomeView: React.FC<HomeViewProps> = ({ language, setView }) => {
+const HomeView: React.FC<HomeViewProps> = ({ language, setView, userName, farmCount }) => {
+  const isHindi = language === Language.HINDI;
+
+  // Personalized greeting
+  const displayName = userName || (isHindi ? 'किसान' : 'Farmer');
+  const greeting = isHindi ? `नमस्ते, ${displayName}!` : `Namaste, ${displayName}!`;
+
   const cards = [
     {
       id: 'chat',
-      title: language === Language.HINDI ? 'फसल सलाह' : 'Crop Advisory',
-      desc: language === Language.HINDI ? 'विशेषज्ञ से पूछें' : 'Ask the expert',
+      title: isHindi ? 'फसल सलाह' : 'Crop Advisory',
+      desc: isHindi ? 'विशेषज्ञ से पूछें' : 'Ask the expert',
       icon: MessageSquare,
       iconColor: '#15803d',
       bgColor: '#dcfce7',
@@ -22,8 +30,8 @@ const HomeView: React.FC<HomeViewProps> = ({ language, setView }) => {
     },
     {
       id: 'scan',
-      title: language === Language.HINDI ? 'रोग पहचान' : 'Disease Check',
-      desc: language === Language.HINDI ? 'फोटो अपलोड करें' : 'Upload photo',
+      title: isHindi ? 'रोग पहचान' : 'Disease Check',
+      desc: isHindi ? 'फोटो अपलोड करें' : 'Upload photo',
       icon: ScanLine,
       iconColor: '#c2410c',
       bgColor: '#ffedd5',
@@ -31,8 +39,8 @@ const HomeView: React.FC<HomeViewProps> = ({ language, setView }) => {
     },
     {
       id: 'market',
-      title: language === Language.HINDI ? 'बाज़ार भाव' : 'Market Prices',
-      desc: language === Language.HINDI ? 'ताज़ा अपडेट' : 'Latest updates',
+      title: isHindi ? 'बाज़ार भाव' : 'Market Prices',
+      desc: isHindi ? 'ताज़ा अपडेट' : 'Latest updates',
       icon: TrendingUp,
       iconColor: '#1d4ed8',
       bgColor: '#dbeafe',
@@ -43,18 +51,28 @@ const HomeView: React.FC<HomeViewProps> = ({ language, setView }) => {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Text style={styles.welcome}>
-          {language === Language.HINDI ? 'नमस्ते, किसान!' : 'Namaste, Farmer!'}
-        </Text>
+        <Text style={styles.welcome}>{greeting}</Text>
         <Text style={styles.subWelcome}>
-          {language === Language.HINDI ? 'आइए, आज की खेती की तैयारी देखें।' : "Let’s gently plan for your farm today."}
+          {isHindi ? 'आइए, आज की खेती की तैयारी देखें।' : "Let's gently plan for your farm today."}
         </Text>
       </View>
+
+      {/* Farm count badge */}
+      {farmCount != null && farmCount > 0 && (
+        <View style={styles.farmBadge}>
+          <Sprout size={16} color="#15803d" />
+          <Text style={styles.farmBadgeText}>
+            {isHindi
+              ? `🌾 ${farmCount} खेत जुड़े हैं`
+              : `🌾 ${farmCount} farm${farmCount > 1 ? 's' : ''} registered`}
+          </Text>
+        </View>
+      )}
 
       <WeatherWidget language={language} />
 
       <Text style={styles.sectionTitle}>
-        {language === Language.HINDI ? 'सेवाएं' : 'Services'}
+        {isHindi ? 'सेवाएं' : 'Services'}
       </Text>
 
       <View style={styles.grid}>
@@ -82,10 +100,10 @@ const HomeView: React.FC<HomeViewProps> = ({ language, setView }) => {
       {/* Daily Tip Card */}
       <View style={styles.tipCard}>
         <Text style={styles.tipTitle}>
-          {language === Language.HINDI ? 'आज का सुझाव' : 'Tip of the Day'}
+          {isHindi ? 'आज का सुझाव' : 'Tip of the Day'}
         </Text>
         <Text style={styles.tipText}>
-          {language === Language.HINDI 
+          {isHindi 
             ? 'मिट्टी की नमी बनाए रखने के लिए गीली घास (mulch) का प्रयोग करें। इससे पानी की बचत होगी।' 
             : 'Use organic mulch to retain soil moisture during the dry season. It reduces water need by 30%.'}
         </Text>
@@ -104,7 +122,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    marginBottom: 24,
+    marginBottom: 16,
   },
   welcome: {
     fontSize: 26,
@@ -115,6 +133,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#64748b',
     marginTop: 4,
+  },
+  farmBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#f0fdf4',
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginBottom: 16,
+    alignSelf: 'flex-start',
+  },
+  farmBadgeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#15803d',
   },
   sectionTitle: {
     fontSize: 18,

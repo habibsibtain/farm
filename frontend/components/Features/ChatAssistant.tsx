@@ -12,8 +12,6 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
-  TouchableWithoutFeedback,
-  Keyboard,
 } from "react-native";
 import {
   Send,
@@ -27,8 +25,10 @@ import {
   X,
 } from "lucide-react-native";
 import * as Speech from "expo-speech";
+import { Audio } from "expo-av";
+import { readAsStringAsync, EncodingType } from "expo-file-system";
 import { ChatMessage, Language } from "../../types";
-import { generateCropAdvisory } from "../../services/geminiService";
+import { generateCropAdvisory, transcribeAudio } from "../../services/geminiService";
 
 interface ChatAssistantProps {
   language: Language;
@@ -51,10 +51,12 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const flatListRef = useRef<FlatList>(null);
+  const recordingRef = useRef<Audio.Recording | null>(null);
 
   useEffect(() => {
     if (!showSearch) {
@@ -119,13 +121,91 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
     ]);
   };
 
+  const startRecording = async () => {
+    try {
+      // Request permission
+      const permission = await Audio.requestPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          language === Language.HINDI ? "अनुमति आवश्यक" : "Permission Required",
+          language === Language.HINDI
+            ? "वॉइस इनपुट के लिए माइक्रोफ़ोन की अनुमति दें।"
+            : "Please allow microphone access for voice input."
+        );
+        return;
+      }
+
+      // Set audio mode for recording
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      // Start recording with high quality preset
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      recordingRef.current = recording;
+      setIsListening(true);
+    } catch (err) {
+      console.error("Failed to start recording:", err);
+      Alert.alert("Error", "Could not start voice recording.");
+    }
+  };
+
+  const stopRecording = async () => {
+    try {
+      const recording = recordingRef.current;
+      if (!recording) return;
+
+      setIsListening(false);
+      setIsTranscribing(true);
+
+      await recording.stopAndUnloadAsync();
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+
+      const uri = recording.getURI();
+      recordingRef.current = null;
+
+      if (!uri) {
+        setIsTranscribing(false);
+        return;
+      }
+
+      // Read audio file as base64
+      const base64Audio = await readAsStringAsync(uri, {
+        encoding: EncodingType.Base64,
+      });
+
+      // Determine mime type based on platform
+      const mimeType = Platform.OS === "ios" ? "audio/m4a" : "audio/mp4";
+
+      // Send to Gemini for transcription
+      const transcribedText = await transcribeAudio(base64Audio, mimeType, language);
+
+      if (transcribedText) {
+        setInput((prev) => (prev ? prev + " " + transcribedText : transcribedText));
+      } else {
+        Alert.alert(
+          language === Language.HINDI ? "सुनाई नहीं दिया" : "Couldn't hear",
+          language === Language.HINDI
+            ? "कृपया फिर से बोलें।"
+            : "Please try speaking again."
+        );
+      }
+    } catch (err) {
+      console.error("Failed to stop recording:", err);
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
   const toggleListening = () => {
-    // Note: Expo Go does not support Voice Recognition out of the box without native build or plugins.
-    // For this demo, we will simulate or use a placeholder.
-    Alert.alert(
-      "Voice Input",
-      "Voice recognition requires a native development build (e.g., using @react-native-voice/voice).",
-    );
+    if (isListening) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
   };
 
   const speakText = (text: string) => {
@@ -200,11 +280,10 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
   };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
+        behavior={Platform.OS === "ios" ? "padding" : "padding"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 80}
       >
         {/* Utility Bar */}
         <View style={styles.utilityBar}>
@@ -272,6 +351,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
           ListFooterComponent={
             loading ? (
               <View style={styles.loaderContainer}>
@@ -282,9 +362,18 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
         />
 
         <View style={styles.inputArea}>
-          <TouchableOpacity onPress={toggleListening} style={styles.micBtn}>
-            {isListening ? (
-              <MicOff size={20} color="#b45309" />
+          <TouchableOpacity
+            onPress={toggleListening}
+            disabled={isTranscribing}
+            style={[
+              styles.micBtn,
+              isListening && styles.micBtnRecording,
+            ]}
+          >
+            {isTranscribing ? (
+              <ActivityIndicator size="small" color="#16a34a" />
+            ) : isListening ? (
+              <MicOff size={20} color="#dc2626" />
             ) : (
               <Mic size={20} color="#64748b" />
             )}
@@ -294,10 +383,15 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
             value={input}
             onChangeText={setInput}
             placeholder={
-              language === Language.HINDI ? "यहाँ लिखें..." : "Type here..."
+              isListening
+                ? (language === Language.HINDI ? "🔴 सुन रहा हूँ..." : "🔴 Listening...")
+                : isTranscribing
+                  ? (language === Language.HINDI ? "टेक्स्ट में बदल रहा..." : "Transcribing...")
+                  : (language === Language.HINDI ? "यहाँ लिखें..." : "Type here...")
             }
             style={styles.input}
             onSubmitEditing={handleSend}
+            editable={!isListening}
           />
 
           <TouchableOpacity
@@ -312,7 +406,6 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-    </TouchableWithoutFeedback>
   );
 };
 
@@ -452,6 +545,10 @@ const styles = StyleSheet.create({
   },
   micBtn: {
     padding: 10,
+  },
+  micBtnRecording: {
+    backgroundColor: "#fee2e2",
+    borderRadius: 20,
   },
   input: {
     flex: 1,

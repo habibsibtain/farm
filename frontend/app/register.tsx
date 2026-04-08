@@ -15,6 +15,7 @@ import {
 import { Picker } from "@react-native-picker/picker";
 import { useRouter } from "expo-router";
 import { authService } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { SUPPORTED_LANGUAGES } from "../i18n";
 import { Language } from "../types";
@@ -22,6 +23,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 
 const RegisterScreen: React.FC = () => {
   const router = useRouter();
+  const { signInWithToken } = useAuth();
   const { t, language } = useLanguage();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -32,7 +34,7 @@ const RegisterScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleNext = async () => {
+  const handleRegister = async () => {
     if (!name.trim() || !phone.trim() || !password.trim() || !confirmPassword.trim()) {
       setError("Please fill all fields.");
       return;
@@ -45,22 +47,23 @@ const RegisterScreen: React.FC = () => {
       setError("Please enter a valid 10-digit phone number.");
       return;
     }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const challenge = await authService.requestRegisterOtp({
-        name: name.trim(),
-        phone: phone.trim(),
-        password: password.trim(),
-        language: preferredLanguage,
-      });
-      router.push({
-        pathname: "/register-otp",
-        params: {
-          challengeId: challenge.challengeId,
-          phone: challenge.phone,
-        },
-      });
+      // Directly register the user (no OTP step)
+      const res = await authService.register(
+        name.trim(),
+        phone.trim(),
+        password.trim(),
+        preferredLanguage
+      );
+      // Registration successful — save token and navigate to home
+      await signInWithToken(res.token, res.user);
+      router.replace("/(tabs)");
     } catch (e) {
       setError((e as Error).message || "Registration failed.");
     } finally {
@@ -120,7 +123,7 @@ const RegisterScreen: React.FC = () => {
               </Picker>
             </View>
             {error ? <Text style={styles.error}>{error}</Text> : null}
-            <TouchableOpacity onPress={handleNext} disabled={loading} style={styles.button}>
+            <TouchableOpacity onPress={handleRegister} disabled={loading} style={styles.button}>
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t("auth.next")}</Text>}
             </TouchableOpacity>
             <TouchableOpacity onPress={() => router.replace("/login")}>
@@ -157,4 +160,3 @@ const styles = StyleSheet.create({
 });
 
 export default RegisterScreen;
-

@@ -1,26 +1,18 @@
 import { Language } from "../types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Central API config
-// NOTE: Backend base URL is read from environment variables to avoid hard‑coding.
-// Prefer EXPO_PUBLIC_API_URL for Expo; fallback to API_URL for other setups.
-const API_BASE_URL =
-  (typeof process !== "undefined" &&
-    (process.env.EXPO_PUBLIC_API_URL || process.env.API_URL)) ||
-  "";
+const AUTH_TOKEN_KEY = "auth_token";
+
+// Use ENV (recommended)
+const API_BASE_URL: string =
+  process.env.EXPO_PUBLIC_API_URL ||
+  "http://localhost:4000"; // fallback
 
 if (!API_BASE_URL) {
-  // Keeping this as a console warning so it never breaks the UI for farmers.
-  // Developers should configure EXPO_PUBLIC_API_URL / API_URL.
-  // eslint-disable-next-line no-console
-  console.warn(
-    "[API] Base URL is not configured. Set EXPO_PUBLIC_API_URL or API_URL."
-  );
+  console.warn("[API] Base URL is not configured.");
 }
 
-const AUTH_TOKEN_KEY = "kisan_auth_token";
-
-type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
+// ── Types ──────────────────────────────────────────────────────────────
 
 export interface ApiUser {
   _id: string;
@@ -34,19 +26,6 @@ export interface LoginResponse {
   message: string;
   token: string;
   user: ApiUser;
-}
-
-export interface OtpChallengeResponse {
-  message: string;
-  challengeId: string;
-  phone: string;
-}
-
-export interface RegisterOtpRequest {
-  name: string;
-  phone: string;
-  password: string;
-  language: string;
 }
 
 export interface RegisterResponse {
@@ -101,6 +80,30 @@ export interface ApiGenericMessage {
   message: string;
 }
 
+export interface ApiSoilData {
+  _id: string;
+  farmId: string;
+  ph: number;
+  nitrogen: number;
+  phosphorus: number;
+  potassium: number;
+  moisture: number;
+  temperature?: number;
+  source: string;
+  collectedAt: string;
+}
+
+export interface ApiSoilDataResponse {
+  message: string;
+  soilData: ApiSoilData;
+}
+
+export interface ApiSoilDataListResponse {
+  soilData: ApiSoilData[];
+}
+
+// ── Token Management ──────────────────────────────────────────────────
+
 let inMemoryToken: string | null = null;
 
 const getStoredToken = (): string | null => inMemoryToken;
@@ -121,73 +124,67 @@ const bootstrapToken = async (): Promise<string | null> => {
 };
 
 const persistToken = async (token: string | null): Promise<void> => {
-  saveToken(token);
-  try {
-    if (!token) {
-      await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
-    } else {
-      await AsyncStorage.setItem(AUTH_TOKEN_KEY, token);
-    }
-  } catch {
-    // Storage write failures should not crash the app.
+  if (!token) {
+    await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
+  } else {
+    await AsyncStorage.setItem(AUTH_TOKEN_KEY, token);
   }
+  inMemoryToken = token;
 };
 
-async function request<T>(
-  path: string,
-  method: HttpMethod,
-  body?: unknown
+// ── HTTP Client ───────────────────────────────────────────────────────
+
+type Method = "GET" | "POST" | "PUT" | "DELETE";
+
+const REQUEST_TIMEOUT_MS = 15_000; // 15 second timeout for rural networks
+
+export async function request<T>(
+  endpoint: string,
+  method: Method,
+  body?: any
 ): Promise<T> {
-  const url = API_BASE_URL ? `${API_BASE_URL}${path}` : path;
-
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-  };
-
   const token = getStoredToken();
-  if (token) {
-    (headers as Record<string, string>).Authorization = `Bearer ${token}`;
-  }
 
-  const response = await fetch(url, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-    credentials: "include",
-  });
+  // Abort controller for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-  if (!response.ok) {
-    // Try to read a friendly message from the backend, but never expose raw errors to users.
-    let backendMessage: string | undefined;
-    try {
-      const data = await response.json();
-      backendMessage = data?.message;
-    } catch {
-      // ignore
+  try {
+    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || "Something went wrong");
     }
 
-    const error = new Error(
-      backendMessage || "Something went wrong while talking to the server."
-    ) as Error & { status?: number };
-    error.status = response.status;
-    throw error;
+    return res.json();
+  } catch (err: any) {
+    if (err.name === "AbortError") {
+      throw new Error("Request timed out. Please check your internet connection and try again.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  // Some endpoints may return 204 (no content).
-  if (response.status === 204) {
-    return {} as T;
-  }
-
-  return (await response.json()) as T;
 }
+
+// ── Auth Service ──────────────────────────────────────────────────────
 
 export const authService = {
   getStoredToken,
   saveToken: persistToken,
   bootstrapToken,
 
-  async login(phone: string, password: string): Promise<LoginResponse> {
-    const data = await request<LoginResponse>("/auth/login", "POST", {
+  async loginWithPassword(phone: string, password: string): Promise<LoginResponse> {
+    const data = await request<LoginResponse>("/auth/login/password", "POST", {
       phone,
       password,
     });
@@ -195,51 +192,6 @@ export const authService = {
     return data;
   },
 
-  async requestLoginOtp(
-    phone: string,
-    password: string
-  ): Promise<OtpChallengeResponse> {
-    return request<OtpChallengeResponse>("/auth/login/request-otp", "POST", {
-      phone,
-      password,
-    });
-  },
-
-  async verifyLoginOtp(
-    challengeId: string,
-    otp: string
-  ): Promise<LoginResponse> {
-    const data = await request<LoginResponse>("/auth/login/verify-otp", "POST", {
-      challengeId,
-      otp,
-    });
-    await persistToken(data.token);
-    return data;
-  },
-
-  async requestRegisterOtp(payload: RegisterOtpRequest): Promise<OtpChallengeResponse> {
-    return request<OtpChallengeResponse>("/auth/register/request-otp", "POST", payload);
-  },
-
-  async resendRegisterOtp(challengeId: string): Promise<OtpChallengeResponse> {
-    return request<OtpChallengeResponse>("/auth/register/resend-otp", "POST", {
-      challengeId,
-    });
-  },
-
-  async verifyRegisterOtp(
-    challengeId: string,
-    otp: string
-  ): Promise<RegisterResponse> {
-    const data = await request<RegisterResponse>("/auth/register/verify-otp", "POST", {
-      challengeId,
-      otp,
-    });
-    await persistToken(data.token);
-    return data;
-  },
-
-  // Backward compatibility for screens that still call direct register.
   async register(
     name: string,
     phone: string,
@@ -268,6 +220,8 @@ export const authService = {
   },
 };
 
+// ── Farm Service ──────────────────────────────────────────────────────
+
 export const farmService = {
   async getFarms(): Promise<ApiFarmsResponse> {
     return request<ApiFarmsResponse>("/farmer/farms", "GET");
@@ -291,3 +245,17 @@ export const farmService = {
   },
 };
 
+// ── Soil Data Service ─────────────────────────────────────────────────
+
+export const soilService = {
+  async addSoilData(
+    farmId: string,
+    payload: Omit<ApiSoilData, "_id" | "farmId" | "collectedAt">
+  ): Promise<ApiSoilDataResponse> {
+    return request<ApiSoilDataResponse>(`/soil/${farmId}`, "POST", payload);
+  },
+
+  async getSoilData(farmId: string): Promise<ApiSoilDataListResponse> {
+    return request<ApiSoilDataListResponse>(`/soil/${farmId}`, "GET");
+  },
+};

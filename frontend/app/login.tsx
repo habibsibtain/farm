@@ -13,11 +13,13 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { authService } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 const LoginScreen: React.FC = () => {
   const router = useRouter();
+  const { signInWithToken } = useAuth();
   const { t } = useLanguage();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -32,18 +34,17 @@ const LoginScreen: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const otpChallenge = await authService.requestLoginOtp(
+      const res = await authService.loginWithPassword(
         phone.trim(),
         password.trim()
       );
-      router.push({
-        pathname: "/otp-verification",
-        params: {
-          challengeId: otpChallenge.challengeId,
-          phone: otpChallenge.phone,
-        },
-      });
+      // Login successful — save token and navigate to home
+      await signInWithToken(res.token, res.user);
+      router.replace("/(tabs)");
     } catch (e) {
+      // Backend returns specific messages:
+      // - "This phone number is not registered. Please sign up."
+      // - "Incorrect password. Please try again."
       setError((e as Error).message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
@@ -145,4 +146,3 @@ const styles = StyleSheet.create({
 });
 
 export default LoginScreen;
-

@@ -8,47 +8,37 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { Language } from "../../types";
 import {
-  authService,
   farmService,
   ApiFarm,
-  ApiUser,
 } from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 import {
   User,
-  Phone,
   LogOut,
   MapPin,
   Sprout,
   PlusCircle,
+  Trash2,
 } from "lucide-react-native";
 
 interface ProfileViewProps {
   language: Language;
 }
 
-type AuthMode = "login" | "register";
-
 const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
   const router = useRouter();
-  const [authMode, setAuthMode] = useState<AuthMode>("login");
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-
-  const [user, setUser] = useState<ApiUser | null>(null);
+  const { status, user, signOut } = useAuth();
 
   const [farms, setFarms] = useState<ApiFarm[]>([]);
   const [farmsLoading, setFarmsLoading] = useState(false);
   const [farmsError, setFarmsError] = useState<string | null>(null);
   const [showFarmForm, setShowFarmForm] = useState(false);
-
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
 
   const [landState, setLandState] = useState("");
   const [landDistrict, setLandDistrict] = useState("");
@@ -91,130 +81,75 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
     setSaveFarmError(null);
   };
 
-  const loadFarms = async (currentLanguage: Language) => {
+  const loadFarms = async () => {
     setFarmsError(null);
     setFarmsLoading(true);
     try {
       const data = await farmService.getFarms();
       setFarms(data.farms || []);
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error("Error loading farms", error);
       setFarmsError(
-        currentLanguage === Language.HINDI
+        isHindi
           ? "हम अभी आपके खेतों की जानकारी नहीं ला सके। इंटरनेट ठीक होने पर फिर कोशिश करें।"
-          : "We couldn’t load your farms right now. Please try again when your internet is better."
+          : "We couldn't load your farms right now. Please try again when your internet is better."
       );
     } finally {
       setFarmsLoading(false);
     }
   };
 
+  // Load farms when authenticated
   useEffect(() => {
-    // Soft auto-login if a token is already stored.
-    const token = authService.getStoredToken();
-    if (!token) return;
-
-    const bootstrap = async () => {
-      setAuthLoading(true);
-      setAuthError(null);
-      try {
-        const profile = await authService.fetchProfile();
-        setUser(profile.user);
-        await loadFarms(language);
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error("Auto profile fetch failed", error);
-        authService.saveToken(null);
-      } finally {
-        setAuthLoading(false);
-      }
-    };
-
-    void bootstrap();
-  }, [language]);
-
-  const handleLogin = async () => {
-    if (!phone.trim() || !password.trim()) {
-      setAuthError(
-        isHindi
-          ? "कृपया अपना मोबाइल नंबर और पासवर्ड भरें।"
-          : "Please enter your phone number and password."
-      );
-      return;
+    if (status === "authenticated" && user) {
+      void loadFarms();
     }
+  }, [status, user]);
 
-    setAuthLoading(true);
-    setAuthError(null);
-    try {
-      const res = await authService.login(phone.trim(), password.trim());
-      setUser(res.user);
-      await loadFarms(language);
-      // After a successful login, take the farmer gently to the main home.
-      router.replace("/(tabs)");
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("Login error", error);
-      setAuthError(
-        isHindi
-          ? "हम आपको साइन इन नहीं कर सके। नंबर और पासवर्ड एक बार फिर देख लें।"
-          : "We couldn’t sign you in. Please check your number and password and try again."
-      );
-    } finally {
-      setAuthLoading(false);
+  // If user is not authenticated, redirect to login
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace("/login");
     }
-  };
-
-  const handleRegister = async () => {
-    if (!name.trim() || !phone.trim() || !password.trim()) {
-      setAuthError(
-        isHindi
-          ? "कृपया नाम, मोबाइल नंबर और पासवर्ड भरें।"
-          : "Please fill your name, phone number, and a password."
-      );
-      return;
-    }
-
-    setAuthLoading(true);
-    setAuthError(null);
-    try {
-      const res = await authService.register(
-        name.trim(),
-        phone.trim(),
-        password.trim(),
-        language
-      );
-      setUser(res.user);
-      await loadFarms(language);
-      // New account created – guide the farmer to the main home experience.
-      router.replace("/(tabs)");
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("Register error", error);
-      setAuthError(
-        isHindi
-          ? "खाता नहीं बन पाया। कृपया कुछ देर बाद फिर कोशिश करें या दूसरा नंबर आज़माएँ।"
-          : "We couldn’t create your account right now. Please try again in a bit or use a different number."
-      );
-    } finally {
-      setAuthLoading(false);
-    }
-  };
+  }, [status]);
 
   const handleLogout = async () => {
-    setAuthLoading(true);
     try {
-      await authService.logout();
+      await signOut();
+      router.replace("/login");
     } catch (error) {
-      // Keep the UI calm even if logout request fails.
-      // eslint-disable-next-line no-console
       console.error("Logout error", error);
-    } finally {
-      authService.saveToken(null);
-      setUser(null);
-      setFarms([]);
-      setAuthLoading(false);
     }
+  };
+
+  const handleDeleteFarm = (farmId: string, farmName: string) => {
+    Alert.alert(
+      isHindi ? "खेत हटाएं" : "Remove farm",
+      isHindi
+        ? `क्या आप "${farmName}" को हटाना चाहते हैं?`
+        : `Are you sure you want to remove "${farmName}"?`,
+      [
+        { text: isHindi ? "रद्द करें" : "Cancel", style: "cancel" },
+        {
+          text: isHindi ? "हटाएं" : "Remove",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await farmService.deleteFarm(farmId);
+              await loadFarms();
+            } catch (error) {
+              console.error("Delete farm error", error);
+              Alert.alert(
+                isHindi ? "त्रुटि" : "Error",
+                isHindi
+                  ? "खेत हटाने में समस्या हुई। कृपया दोबारा कोशिश करें।"
+                  : "Failed to remove the farm. Please try again."
+              );
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleSaveFarm = async () => {
@@ -255,7 +190,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
           village: landVillage.trim(),
         },
         landsize: numericSize,
-        soiltype: soilType!,
+        soiltype: soilType,
         irrigationtype: irrigationType,
         cropsgrown: cropsText
           .split(",")
@@ -265,259 +200,157 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
 
       resetFarmForm();
       setShowFarmForm(false);
-      await loadFarms(language);
+      await loadFarms();
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error("Save farm error", error);
       setSaveFarmError(
         isHindi
           ? "हम अभी आपका खेत नहीं जोड़ पाए। इंटरनेट ठीक होने पर फिर कोशिश करें।"
-          : "We couldn’t save your farm right now. Please try again when your internet is stable."
+          : "We couldn't save your farm right now. Please try again when your internet is stable."
       );
     } finally {
       setSaveFarmLoading(false);
     }
   };
 
-  const renderAuthSection = () => {
+  // Loading state
+  if (status === "loading") {
     return (
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>
-          {isHindi ? "चलिए, आपकी खेती को सुरक्षित रखें" : "Let’s keep your farm safe here"}
-        </Text>
-        <Text style={styles.cardSubtitle}>
-          {isHindi
-            ? "खाता बनाकर आप अपने खेत और मिट्टी की रिपोर्ट बाद में भी देख सकते हैं।"
-            : "With an account, your farms and soil reports stay saved for later."}
-        </Text>
-
-        <View style={styles.modeSwitch}>
-          <TouchableOpacity
-            onPress={() => setAuthMode("login")}
-            style={[
-              styles.modeButton,
-              authMode === "login" && styles.modeButtonActive,
-            ]}
-          >
-            <Text
-              style={[
-                styles.modeButtonText,
-                authMode === "login" && styles.modeButtonTextActive,
-              ]}
-            >
-              {isHindi ? "लॉगिन" : "Login"}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setAuthMode("register")}
-            style={[
-              styles.modeButton,
-              authMode === "register" && styles.modeButtonActive,
-            ]}
-          >
-            <Text
-              style={[
-                styles.modeButtonText,
-                authMode === "register" && styles.modeButtonTextActive,
-              ]}
-            >
-              {isHindi ? "नया खाता" : "New account"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {authMode === "register" && (
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              {isHindi ? "नाम" : "Name"}
-            </Text>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              placeholder={isHindi ? "अपना नाम" : "Your name"}
-              style={styles.input}
-            />
-          </View>
-        )}
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>
-            {isHindi ? "मोबाइल नंबर" : "Phone number"}
-          </Text>
-          <View style={styles.inputWithIcon}>
-            <Phone size={18} color="#9ca3af" />
-            <TextInput
-              keyboardType="phone-pad"
-              value={phone}
-              onChangeText={setPhone}
-              placeholder={isHindi ? "10 अंकों का मोबाइल नंबर" : "10-digit mobile number"}
-              style={styles.inputInner}
-            />
-          </View>
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>
-            {isHindi ? "पासवर्ड" : "Password"}
-          </Text>
-          <TextInput
-            value={password}
-            onChangeText={setPassword}
-            placeholder={isHindi ? "आसान लेकिन मजबूत पासवर्ड" : "Easy but strong password"}
-            secureTextEntry
-            style={styles.input}
-          />
-        </View>
-
-        {authError ? <Text style={styles.errorText}>{authError}</Text> : null}
-
-        <TouchableOpacity
-          onPress={authMode === "login" ? handleLogin : handleRegister}
-          disabled={authLoading}
-          style={[
-            styles.primaryButton,
-            authLoading && styles.primaryButtonDisabled,
-          ]}
-        >
-          {authLoading ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text style={styles.primaryButtonText}>
-              {authMode === "login"
-                ? isHindi
-                  ? "सुरक्षित लॉगिन"
-                  : "Sign in safely"
-                : isHindi
-                ? "मेरा खाता बनाएं"
-                : "Create my account"}
-            </Text>
-          )}
-        </TouchableOpacity>
-
-        <Text style={styles.privacyNote}>
-          {isHindi
-            ? "आपकी जानकारी सुरक्षित रखी जाती है और सिर्फ खेती से जुड़ी मदद के लिए उपयोग होती है।"
-            : "Your details stay private and are only used to support your farming."}
-        </Text>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#16a34a" />
       </View>
     );
-  };
+  }
 
-  const renderFarmList = () => {
-    if (!user) return null;
+  // Not authenticated — handled by redirect above, show nothing
+  if (!user) {
+    return null;
+  }
 
-    return (
-      <View style={styles.card}>
-        <View style={styles.cardHeaderRow}>
-          <Text style={styles.cardTitle}>
-            {isHindi ? "आपके खेत" : "Your farms"}
+  const renderFarmList = () => (
+    <View style={styles.card}>
+      <View style={styles.cardHeaderRow}>
+        <Text style={styles.cardTitle}>
+          {isHindi ? "आपके खेत" : "Your farms"}
+        </Text>
+        <TouchableOpacity
+          onPress={() => {
+            resetFarmForm();
+            setShowFarmForm(true);
+          }}
+          style={styles.chipButton}
+        >
+          <PlusCircle size={16} color="#16a34a" />
+          <Text style={styles.chipButtonText}>
+            {isHindi ? "खेत जोड़ें" : "Add your farm"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {farmsLoading && farms.length === 0 ? (
+        <View style={styles.centerBox}>
+          <ActivityIndicator color="#16a34a" />
+          <Text style={styles.helperText}>
+            {isHindi
+              ? "आपके खेत लोड हो रहे हैं..."
+              : "Loading your farms..."}
+          </Text>
+        </View>
+      ) : farmsError ? (
+        <View style={styles.centerBox}>
+          <Text style={styles.errorText}>{farmsError}</Text>
+        </View>
+      ) : farms.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Sprout size={36} color="#16a34a" />
+          <Text style={styles.emptyTitle}>
+            {isHindi ? "अभी कोई खेत नहीं जुड़ा" : "No farms added yet"}
+          </Text>
+          <Text style={styles.emptySubtitle}>
+            {isHindi
+              ? "अपने खेत को जोड़ें ताकि मिट्टी और फसल की सलाह हमेशा आपके पास रहे।"
+              : "Add your land so soil and crop advice stays saved for you."}
           </Text>
           <TouchableOpacity
             onPress={() => {
               resetFarmForm();
               setShowFarmForm(true);
             }}
-            style={styles.chipButton}
+            style={styles.secondaryButton}
           >
-            <PlusCircle size={16} color="#16a34a" />
-            <Text style={styles.chipButtonText}>
-              {isHindi ? "खेत जोड़ें" : "Add your farm"}
+            <Text style={styles.secondaryButtonText}>
+              {isHindi ? "चलें, खेत जोड़ें" : "Let's add your farm"}
             </Text>
           </TouchableOpacity>
         </View>
-
-        {farmsLoading && farms.length === 0 ? (
-          <View style={styles.centerBox}>
-            <ActivityIndicator color="#16a34a" />
-            <Text style={styles.helperText}>
-              {isHindi
-                ? "आपके खेत लोड हो रहे हैं..."
-                : "Loading your farms..."}
-            </Text>
-          </View>
-        ) : farmsError ? (
-          <View style={styles.centerBox}>
-            <Text style={styles.errorText}>{farmsError}</Text>
-          </View>
-        ) : farms.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Sprout size={36} color="#16a34a" />
-            <Text style={styles.emptyTitle}>
-              {isHindi ? "अभी कोई खेत नहीं जुड़ा" : "No farms added yet"}
-            </Text>
-            <Text style={styles.emptySubtitle}>
-              {isHindi
-                ? "अपने खेत को जोड़ें ताकि मिट्टी और फसल की सलाह हमेशा आपके पास रहे।"
-                : "Add your land so soil and crop advice stays saved for you."}
-            </Text>
-            <TouchableOpacity
-              onPress={() => {
-                resetFarmForm();
-                setShowFarmForm(true);
-              }}
-              style={styles.secondaryButton}
-            >
-              <Text style={styles.secondaryButtonText}>
-                {isHindi ? "चलें, खेत जोड़ें" : "Let’s add your farm"}
+      ) : (
+        <>
+          {farms.map((farm) => (
+            <View key={farm._id} style={styles.farmCard}>
+              <View style={styles.farmLocationRow}>
+                <MapPin size={18} color="#16a34a" />
+                <Text style={styles.farmLocationText}>
+                  {farm.location.village}, {farm.location.district}
+                </Text>
+              </View>
+              <Text style={styles.farmMeta}>
+                {isHindi ? "राज्य: " : "State: "}
+                <Text style={styles.farmMetaValue}>
+                  {farm.location.state}
+                </Text>
               </Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <>
-            {farms.map((farm) => (
-              <View key={farm._id} style={styles.farmCard}>
-                <View style={styles.farmLocationRow}>
-                  <MapPin size={18} color="#16a34a" />
-                  <Text style={styles.farmLocationText}>
-                    {farm.location.village}, {farm.location.district}
-                  </Text>
-                </View>
-                <Text style={styles.farmMeta}>
-                  {isHindi ? "राज्य: " : "State: "}
-                  <Text style={styles.farmMetaValue}>
-                    {farm.location.state}
-                  </Text>
+              <Text style={styles.farmMeta}>
+                {isHindi ? "भूमि: " : "Land: "}
+                <Text style={styles.farmMetaValue}>
+                  {farm.landsize} {isHindi ? "एकड़" : "acres"}
                 </Text>
-                <Text style={styles.farmMeta}>
-                  {isHindi ? "भूमि: " : "Land: "}
-                  <Text style={styles.farmMetaValue}>
-                    {farm.landsize} {isHindi ? "एकड़" : "acres"}
-                  </Text>
+              </Text>
+              <Text style={styles.farmMeta}>
+                {isHindi ? "मिट्टी: " : "Soil: "}
+                <Text style={styles.farmMetaValue}>{farm.soiltype}</Text>
+              </Text>
+              <Text style={styles.farmMeta}>
+                {isHindi ? "सिंचाई: " : "Irrigation: "}
+                <Text style={styles.farmMetaValue}>
+                  {farm.irrigationtype}
                 </Text>
-                <Text style={styles.farmMeta}>
-                  {isHindi ? "मिट्टी: " : "Soil: "}
-                  <Text style={styles.farmMetaValue}>{farm.soiltype}</Text>
+              </Text>
+              <Text style={styles.farmMeta}>
+                {isHindi ? "मुख्य फसलें: " : "Main crops: "}
+                <Text style={styles.farmMetaValue}>
+                  {farm.cropsgrown.join(", ")}
                 </Text>
-                <Text style={styles.farmMeta}>
-                  {isHindi ? "सिंचाई: " : "Irrigation: "}
-                  <Text style={styles.farmMetaValue}>
-                    {farm.irrigationtype}
-                  </Text>
-                </Text>
-                <Text style={styles.farmMeta}>
-                  {isHindi ? "मुख्य फसलें: " : "Main crops: "}
-                  <Text style={styles.farmMetaValue}>
-                    {farm.cropsgrown.join(", ")}
-                  </Text>
-                </Text>
+              </Text>
 
-                <View style={styles.farmFooterNote}>
+              <View style={styles.farmFooterNote}>
+                <View style={styles.farmFooterRow}>
                   <Text style={styles.farmFooterText}>
                     {isHindi
                       ? "जब भी आप सलाह लेंगे, हम इस खेत को ध्यान में रखेंगे।"
-                      : "Future advice will gently consider this land’s details."}
+                      : "Future advice will gently consider this land's details."}
                   </Text>
+                  <TouchableOpacity
+                    onPress={() =>
+                      handleDeleteFarm(
+                        farm._id,
+                        `${farm.location.village}, ${farm.location.district}`
+                      )
+                    }
+                    style={styles.deleteFarmBtn}
+                  >
+                    <Trash2 size={14} color="#dc2626" />
+                  </TouchableOpacity>
                 </View>
               </View>
-            ))}
-          </>
-        )}
-      </View>
-    );
-  };
+            </View>
+          ))}
+        </>
+      )}
+    </View>
+  );
 
   const renderFarmForm = () => {
-    if (!user || !showFarmForm) return null;
+    if (!showFarmForm) return null;
 
     return (
       <View style={styles.card}>
@@ -714,51 +547,43 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
           </View>
         </View>
 
-        {user && (
-          <TouchableOpacity
-            onPress={handleLogout}
-            disabled={authLoading}
-            style={styles.logoutButton}
-          >
-            <LogOut size={16} color="#64748b" />
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          onPress={handleLogout}
+          style={styles.logoutButton}
+        >
+          <LogOut size={16} color="#64748b" />
+        </TouchableOpacity>
       </View>
 
-      {user ? (
-        <View style={styles.card}>
-          <View style={styles.profileRow}>
-            <View style={styles.profileAvatar}>
-              <User size={28} color="#16a34a" />
-            </View>
-            <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{user.name}</Text>
-              <Text style={styles.profilePhone}>{user.phone}</Text>
-              <Text style={styles.profileNote}>
-                {isHindi
-                  ? "आपका खाता बन चुका है। अब खेत जोड़कर आगे बढ़ें।"
-                  : "Your account is ready. Add your land to get better guidance."}
-              </Text>
-            </View>
+      {/* User Profile Card */}
+      <View style={styles.card}>
+        <View style={styles.profileRow}>
+          <View style={styles.profileAvatar}>
+            <User size={28} color="#16a34a" />
+          </View>
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName}>{user.name}</Text>
+            <Text style={styles.profilePhone}>{user.phone}</Text>
+            <Text style={styles.profileNote}>
+              {isHindi
+                ? "आपका खाता बन चुका है। अब खेत जोड़कर आगे बढ़ें।"
+                : "Your account is ready. Add your land to get better guidance."}
+            </Text>
           </View>
         </View>
-      ) : (
-        renderAuthSection()
-      )}
+      </View>
 
-      {user && renderFarmList()}
-      {user && renderFarmForm()}
+      {renderFarmList()}
+      {renderFarmForm()}
 
-      {user && (
-        <View style={styles.softInfoCard}>
-          <Sprout size={22} color="#16a34a" />
-          <Text style={styles.softInfoText}>
-            {isHindi
-              ? "जल्द ही यहाँ आपकी मिट्टी की रिपोर्ट और सलाह का पूरा इतिहास दिखेगा।"
-              : "Soon, this space will gently show your soil reports and past advice in one place."}
-          </Text>
-        </View>
-      )}
+      <View style={styles.softInfoCard}>
+        <Sprout size={22} color="#16a34a" />
+        <Text style={styles.softInfoText}>
+          {isHindi
+            ? "जल्द ही यहाँ आपकी मिट्टी की रिपोर्ट और सलाह का पूरा इतिहास दिखेगा।"
+            : "Soon, this space will gently show your soil reports and past advice in one place."}
+        </Text>
+      </View>
       </KeyboardAwareScrollView>
     </KeyboardAvoidingView>
   );
@@ -767,6 +592,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#f8fafc",
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: "#f8fafc",
   },
   contentContainer: {
@@ -830,30 +661,6 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     marginBottom: 12,
   },
-  modeSwitch: {
-    flexDirection: "row",
-    backgroundColor: "#f3f4f6",
-    borderRadius: 999,
-    padding: 4,
-    marginBottom: 16,
-  },
-  modeButton: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 999,
-    alignItems: "center",
-  },
-  modeButtonActive: {
-    backgroundColor: "#16a34a",
-  },
-  modeButtonText: {
-    fontSize: 13,
-    color: "#6b7280",
-    fontWeight: "500",
-  },
-  modeButtonTextActive: {
-    color: "#ffffff",
-  },
   inputGroup: {
     marginBottom: 12,
   },
@@ -869,21 +676,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    fontSize: 14,
-  },
-  inputWithIcon: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "#f9fafb",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-  },
-  inputInner: {
-    flex: 1,
     fontSize: 14,
   },
   primaryButton: {
@@ -932,11 +724,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 13,
     color: "#b45309",
-  },
-  privacyNote: {
-    marginTop: 10,
-    fontSize: 12,
-    color: "#6b7280",
   },
   profileRow: {
     flexDirection: "row",
@@ -1047,9 +834,21 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#e5e7eb",
   },
+  farmFooterRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   farmFooterText: {
     fontSize: 12,
     color: "#6b7280",
+    flex: 1,
+  },
+  deleteFarmBtn: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: "#fef2f2",
+    marginLeft: 8,
   },
   stepLabel: {
     fontSize: 12,
@@ -1106,4 +905,3 @@ const styles = StyleSheet.create({
 });
 
 export default ProfileView;
-

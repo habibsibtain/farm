@@ -129,3 +129,61 @@ export const getMarketInsights = async (language: Language): Promise<MarketItem[
     return [];
   }
 }
+
+/**
+ * Transcribe audio to text using Gemini.
+ * Works in Expo Go — no native voice recognition module needed.
+ * @param base64Audio - Base64 encoded audio data
+ * @param mimeType - Audio MIME type (e.g. "audio/mp4", "audio/wav", "audio/m4a")
+ * @param language - Target language for transcription
+ */
+export const transcribeAudio = async (
+  base64Audio: string,
+  mimeType: string,
+  language: Language
+): Promise<string> => {
+  try {
+    const ai = getClient();
+    const langName =
+      language === Language.HINDI
+        ? "Hindi"
+        : language === Language.PUNJABI
+          ? "Punjabi"
+          : language === Language.TELUGU
+            ? "Telugu"
+            : language === Language.TAMIL
+              ? "Tamil"
+              : language === Language.KANNADA
+                ? "Kannada"
+                : language === Language.BENGALI
+                  ? "Bengali"
+                  : language === Language.MARATHI
+                    ? "Marathi"
+                    : "English";
+
+    const response: GenerateContentResponse = await ai.models.generateContent({
+      model: "gemini-2.5-flash-preview-04-17",
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              mimeType,
+              data: base64Audio,
+            },
+          },
+          {
+            text: `Transcribe the spoken words in this audio exactly as they are spoken. 
+            The speaker may be speaking in ${langName} or English or a mix. 
+            Return ONLY the transcribed text, nothing else. No labels, no quotes, no explanation.
+            If you cannot hear anything, return an empty string.`,
+          },
+        ],
+      },
+    });
+
+    return (response.text || "").trim();
+  } catch (error) {
+    console.error("Transcription Error:", error);
+    return "";
+  }
+};

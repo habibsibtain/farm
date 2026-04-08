@@ -1,9 +1,11 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import HomeView from "../../components/Views/HomeView";
 import AppHeader from "../../components/Layout/AppHeader";
 import { useLanguage } from "../../context/LanguageContext";
+import { useAuth } from "../../context/AuthContext";
+import { farmService } from "../../services/api";
 import { AppView } from "../../types";
 
 /**
@@ -12,7 +14,19 @@ import { AppView } from "../../types";
  */
 export default function HomeScreen() {
   const { language } = useLanguage();
+  const { user } = useAuth();
   const router = useRouter();
+  const [farmCount, setFarmCount] = useState<number>(0);
+
+  // Fetch farm count on mount
+  useEffect(() => {
+    if (user) {
+      farmService
+        .getFarms()
+        .then((res) => setFarmCount(res.farms?.length || 0))
+        .catch(() => setFarmCount(0));
+    }
+  }, [user]);
 
   const handleSetView = (view: AppView) => {
     switch (view) {
@@ -38,7 +52,12 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <AppHeader />
-      <HomeView language={language} setView={handleSetView} />
+      <HomeView
+        language={language}
+        setView={handleSetView}
+        userName={user?.name}
+        farmCount={farmCount}
+      />
     </View>
   );
 }
@@ -49,4 +68,3 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8fafc",
   },
 });
-

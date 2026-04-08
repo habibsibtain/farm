@@ -5,6 +5,7 @@ import { Language } from '../../types';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useWeather } from '@/hooks/useWeather';
 import { useUserLocation } from '@/hooks/useUserLocation';
+import ForecastRow from './ForecastRow';
 
 interface WeatherWidgetProps {
   language: Language;
@@ -61,6 +62,11 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ language }) => {
           </View>
         </View>
       </View>
+
+      {/* 7-Day Forecast Row */}
+      {/* To use ML model predictions in the future, pass mlForecast prop:
+          <ForecastRow forecast={forecast} mlForecast={mlPredictions} /> */}
+      <ForecastRow forecast={forecast} />
     </LinearGradient>
   );
 };
