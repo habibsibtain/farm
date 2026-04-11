@@ -423,3 +423,56 @@ export const cropScanService = {
     return request<CropScanHealthResponse>("/crop-scan/health", "GET");
   },
 };
+
+// ── Crop Recommendation Service ───────────────────────────────────────
+
+export interface CropRecommendation {
+  crop: string;
+  crop_hindi: string;
+  suitability: number;
+  season: string;
+  water_requirement: string;
+  duration: string;
+  is_seasonal: boolean;
+}
+
+export interface CropRecommendWeather {
+  temperature: number;
+  humidity: number;
+  rainfall: number;
+  location: string;
+}
+
+export interface CropRecommendResult {
+  success: boolean;
+  recommendations: CropRecommendation[];
+  current_season: string;
+  weather: CropRecommendWeather;
+  model_accuracy: number;
+  inference_time_ms: number;
+  farm_context: {
+    soil_type: string;
+    land_size: number;
+    irrigation_type: string;
+  };
+  error?: string;
+}
+
+export interface CropRecommendPayload {
+  soil_type: string;
+  state: string;
+  district?: string;
+  land_size?: number;
+  irrigation_type?: string;
+  crops_grown?: string[];
+  nitrogen?: number;
+  phosphorus?: number;
+  potassium?: number;
+  ph?: number;
+}
+
+export const cropRecommendService = {
+  async suggest(payload: CropRecommendPayload): Promise<CropRecommendResult> {
+    return request<CropRecommendResult>("/crop-recommend/suggest", "POST", payload);
+  },
+};

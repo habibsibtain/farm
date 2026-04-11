@@ -20,6 +20,9 @@ from PIL import Image
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# Crop recommendation module path (loaded via importlib, NOT sys.path, to avoid name collision)
+CROP_REC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'crop_recommendation')
+
 from config import (
     API_HOST,
     API_PORT,
@@ -40,6 +43,9 @@ app.config["TRAP_HTTP_EXCEPTIONS"] = True  # Route ALL errors through our JSON h
 # Global predictor instance (loaded once at startup)
 predictor = None
 
+# Global crop recommender instance
+crop_recommender = None
+
 
 def get_predictor():
     """Lazy-load the predictor model."""
@@ -57,6 +63,27 @@ def get_predictor():
     return predictor
 
 
+def get_crop_recommender():
+    """Lazy-load the crop recommender model."""
+    global crop_recommender
+    if crop_recommender is None:
+        try:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location(
+                "crop_rec_predict",
+                os.path.join(CROP_REC_DIR, "predict.py")
+            )
+            crop_rec_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(crop_rec_module)
+            crop_recommender = crop_rec_module.CropRecommender()
+            crop_recommender.load()
+            print("[INFO] Crop recommender model loaded!")
+        except Exception as e:
+            print(f"[WARN] Could not load crop recommender: {e}")
+            return None
+    return crop_recommender
+
+
 # ─── Routes ────────────────────────────────────────────────────────────────────
 
 
@@ -65,12 +92,13 @@ def index():
     """API root - health check and info."""
     return jsonify({
         "service": "Crop Disease Prediction API",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "status": "running",
         "device": str(DEVICE),
         "endpoints": {
             "POST /predict": "Predict disease from leaf image",
             "POST /predict/batch": "Predict diseases for multiple images",
+            "POST /recommend": "Recommend crops based on soil/weather",
             "GET /classes": "List all supported disease classes",
             "GET /health": "Health check",
         },
@@ -276,6 +304,81 @@ def too_large(e):
         "error": "File too large",
         "max_size_mb": MAX_CONTENT_LENGTH / (1024 * 1024),
     }), 413
+
+
+# ─── Crop Recommendation Route ─────────────────────────────────────────────────
+
+@app.route("/recommend", methods=["POST"])
+def recommend_crops():
+    """
+    Recommend best crops to grow based on soil and weather conditions.
+    
+    JSON body:
+      - soil_type: str (Alluvial, Black, Red, Laterite, Sandy, Loamy)
+      - temperature: float (°C)
+      - humidity: float (%)
+      - rainfall: float (mm)
+      - nitrogen: float (optional, kg/ha)
+      - phosphorus: float (optional, kg/ha)
+      - potassium: float (optional, kg/ha)
+      - ph: float (optional, soil pH)
+    """
+    try:
+        rec = get_crop_recommender()
+        if rec is None:
+            return jsonify({
+                "success": False,
+                "error": "Crop recommendation model not available",
+            }), 503
+
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "JSON body required with soil_type, temperature, humidity, rainfall",
+            }), 400
+
+        # Required fields
+        soil_type = data.get("soil_type", "Loamy")
+        temperature = data.get("temperature")
+        humidity = data.get("humidity")
+        rainfall = data.get("rainfall")
+
+        if temperature is None or humidity is None or rainfall is None:
+            return jsonify({
+                "success": False,
+                "error": "temperature, humidity, and rainfall are required",
+            }), 400
+
+        # Optional soil data (falls back to soil type defaults)
+        nitrogen = data.get("nitrogen")
+        phosphorus = data.get("phosphorus")
+        potassium = data.get("potassium")
+        ph = data.get("ph")
+
+        t0 = time.time()
+        result = rec.predict_from_farm(
+            soil_type=soil_type,
+            temperature=float(temperature),
+            humidity=float(humidity),
+            rainfall=float(rainfall),
+            nitrogen=float(nitrogen) if nitrogen is not None else None,
+            phosphorus=float(phosphorus) if phosphorus is not None else None,
+            potassium=float(potassium) if potassium is not None else None,
+            ph=float(ph) if ph is not None else None,
+        )
+        inference_time = round((time.time() - t0) * 1000, 2)
+
+        result["success"] = True
+        result["inference_time_ms"] = inference_time
+        return jsonify(result)
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "error": str(e),
+        }), 500
 
 
 @app.errorhandler(404)
