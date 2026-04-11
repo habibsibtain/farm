@@ -27,12 +27,14 @@ import * as ImagePicker from 'expo-image-picker';
 import { cropScanService, CropScanResult } from '../../services/api';
 import { identifyPestFromImage } from '../../services/geminiService';
 import { Language } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface PestDoctorProps {
   language: Language;
 }
 
 const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
+  const { t } = useLanguage();
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [mlResult, setMlResult] = useState<CropScanResult | null>(null);
@@ -41,18 +43,14 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
   const [showTopK, setShowTopK] = useState(false);
   const [scanMode, setScanMode] = useState<'ml' | 'ai'>('ml');
 
-  const isHindi = language === Language.HINDI;
-
   // ── Image Pickers ──────────────────────────────────────────────────
 
   const pickImage = async () => {
     const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!granted) {
       Alert.alert(
-        isHindi ? 'अनुमति ज़रूरी' : 'Permission needed',
-        isHindi
-          ? 'कृपया फोटो चुनने की अनुमति दें।'
-          : 'Please allow photo access to scan your crop.'
+        t('scan.permissionNeeded'),
+        t('scan.allowPhoto')
       );
       return;
     }
@@ -76,10 +74,8 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
     const { granted } = await ImagePicker.requestCameraPermissionsAsync();
     if (!granted) {
       Alert.alert(
-        isHindi ? 'अनुमति ज़रूरी' : 'Permission needed',
-        isHindi
-          ? 'कृपया कैमरा की अनुमति दें।'
-          : 'Please allow camera access to take a photo.'
+        t('scan.permissionNeeded'),
+        t('scan.allowCamera')
       );
       return;
     }
@@ -143,17 +139,15 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
       // Fallback to gemini if ML API is down
       if (error.message?.includes('not running') || error.message?.includes('503')) {
         Alert.alert(
-          isHindi ? 'ML सेवा उपलब्ध नहीं' : 'ML Service Unavailable',
-          isHindi
-            ? 'AI मोड पर स्विच कर रहे हैं...'
-            : 'Switching to AI mode...',
+          t('scan.mlUnavailable'),
+          t('scan.switchingAI'),
         );
         setScanMode('ai');
         await analyzeWithGemini();
       } else {
         Alert.alert(
-          isHindi ? 'त्रुटि' : 'Error',
-          error.message || (isHindi ? 'स्कैन विफल हो गया।' : 'Scan failed.'),
+          t('scan.error'),
+          error.message || t('scan.scanFailed'),
         );
       }
     }
@@ -162,8 +156,8 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
   const analyzeWithGemini = async () => {
     if (!imageBase64) {
       Alert.alert(
-        isHindi ? 'त्रुटि' : 'Error',
-        isHindi ? 'कृपया फोटो दोबारा चुनें।' : 'Please re-select the photo.',
+        t('scan.error'),
+        t('scan.reselectPhoto'),
       );
       return;
     }
@@ -172,11 +166,7 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
       const responseText = await identifyPestFromImage(imageBase64, language);
       setGeminiText(responseText);
     } catch {
-      setGeminiText(
-        isHindi
-          ? 'तस्वीर की जाँच अभी पूरी नहीं हो सकी। कृपया दोबारा कोशिश करें।'
-          : "We couldn't complete the check. Please try again."
-      );
+      setGeminiText(t('scan.couldNotCheck'));
     }
   };
 
@@ -189,9 +179,9 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
   };
 
   const getConfidenceLabel = (confidence: number) => {
-    if (confidence >= 0.85) return isHindi ? 'उच्च विश्वास' : 'High Confidence';
-    if (confidence >= 0.6) return isHindi ? 'मध्यम विश्वास' : 'Medium Confidence';
-    return isHindi ? 'कम विश्वास' : 'Low Confidence';
+    if (confidence >= 0.85) return t('scan.highConfidence');
+    if (confidence >= 0.6) return t('scan.mediumConfidence');
+    return t('scan.lowConfidence');
   };
 
   const parseGeminiResponse = (text: string) => {
@@ -218,12 +208,10 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>
-            {isHindi ? 'फसल डॉक्टर' : 'Crop Doctor'}
+            {t('scan.title')}
           </Text>
           <Text style={styles.subtitle}>
-            {isHindi
-              ? 'AI-संचालित रोग पहचान और उपचार'
-              : 'AI-Powered Disease Detection & Treatment'}
+            {t('scan.subtitle')}
           </Text>
         </View>
 
@@ -235,7 +223,7 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
           >
             <Zap size={16} color={scanMode === 'ml' ? '#fff' : '#64748b'} />
             <Text style={[styles.modeBtnText, scanMode === 'ml' && styles.modeBtnTextActive]}>
-              {isHindi ? 'ML मॉडल' : 'ML Model'}
+              ML Model
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -244,7 +232,7 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
           >
             <Bug size={16} color={scanMode === 'ai' ? '#fff' : '#64748b'} />
             <Text style={[styles.modeBtnText, scanMode === 'ai' && styles.modeBtnTextActive]}>
-              {isHindi ? 'Gemini AI' : 'Gemini AI'}
+              Gemini AI
             </Text>
           </TouchableOpacity>
         </View>
@@ -257,17 +245,17 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
                 <ImagePlus size={32} color="#16a34a" />
               </View>
               <Text style={styles.uploadText}>
-                {isHindi ? 'गैलरी से चुनें' : 'Choose from Gallery'}
+                {t('scan.chooseGallery')}
               </Text>
               <Text style={styles.uploadSubText}>
-                {isHindi ? 'पत्ती की साफ तस्वीर चुनें' : 'Select a clear photo of the leaf'}
+                {t('scan.selectPhoto')}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity onPress={takePhoto} style={styles.cameraBtn}>
               <Camera size={20} color="#fff" />
               <Text style={styles.cameraBtnText}>
-                {isHindi ? 'कैमरा से फोटो लें' : 'Take Photo with Camera'}
+                {t('scan.takePhoto')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -296,14 +284,14 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
                   <View style={styles.loadingRow}>
                     <ActivityIndicator color="#fff" />
                     <Text style={styles.analyzeBtnText}>
-                      {isHindi ? 'जांच हो रही है...' : 'Analyzing...'}
+                      {t('scan.analyzing')}
                     </Text>
                   </View>
                 ) : (
                   <View style={styles.loadingRow}>
                     <Shield size={20} color="#fff" />
                     <Text style={styles.analyzeBtnText}>
-                      {isHindi ? 'बीमारी पहचानें' : 'Scan for Disease'}
+                      {t('scan.scanDisease')}
                     </Text>
                   </View>
                 )}
@@ -336,8 +324,8 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
                   { color: mlResult.is_healthy ? '#15803d' : '#991b1b' }
                 ]}>
                   {mlResult.is_healthy
-                    ? (isHindi ? 'स्वस्थ पौधा' : 'Healthy Plant')
-                    : (isHindi ? 'रोग पाया गया' : 'Disease Detected')}
+                    ? t('scan.healthyPlant')
+                    : t('scan.diseaseDetected')}
                 </Text>
                 <Text style={styles.cropLabel}>{mlResult.crop}</Text>
               </View>
@@ -347,7 +335,7 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
             <View style={styles.resultBody}>
               <View style={styles.diseaseBlock}>
                 <Text style={styles.sectionLabel}>
-                  {isHindi ? 'पहचान' : 'DIAGNOSIS'}
+                  {t('scan.diagnosis')}
                 </Text>
                 <Text style={styles.diseaseName}>{mlResult.disease}</Text>
 
@@ -378,25 +366,25 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
                 <View style={styles.infoSection}>
                   {mlResult.disease_info.cause && (
                     <View style={styles.infoItem}>
-                      <Text style={styles.infoLabel}>{isHindi ? 'कारण' : 'Cause'}</Text>
+                      <Text style={styles.infoLabel}>{t('scan.cause')}</Text>
                       <Text style={styles.infoText}>{mlResult.disease_info.cause}</Text>
                     </View>
                   )}
                   {mlResult.disease_info.symptoms && (
                     <View style={styles.infoItem}>
-                      <Text style={styles.infoLabel}>{isHindi ? 'लक्षण' : 'Symptoms'}</Text>
+                      <Text style={styles.infoLabel}>{t('scan.symptoms')}</Text>
                       <Text style={styles.infoText}>{mlResult.disease_info.symptoms}</Text>
                     </View>
                   )}
                   {mlResult.disease_info.treatment && (
                     <View style={styles.infoItem}>
-                      <Text style={styles.infoLabel}>{isHindi ? 'उपचार' : 'Treatment'}</Text>
+                      <Text style={styles.infoLabel}>{t('scan.treatment')}</Text>
                       <Text style={styles.infoText}>{mlResult.disease_info.treatment}</Text>
                     </View>
                   )}
                   {mlResult.disease_info.prevention && (
                     <View style={styles.infoItem}>
-                      <Text style={styles.infoLabel}>{isHindi ? 'रोकथाम' : 'Prevention'}</Text>
+                      <Text style={styles.infoLabel}>{t('scan.prevention')}</Text>
                       <Text style={styles.infoText}>{mlResult.disease_info.prevention}</Text>
                     </View>
                   )}
@@ -411,7 +399,7 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
                     style={styles.topKToggle}
                   >
                     <Text style={styles.topKToggleText}>
-                      {isHindi ? 'अन्य संभावनाएं' : 'Other Possibilities'}
+                      {t('scan.otherPossibilities')}
                     </Text>
                     {showTopK ? (
                       <ChevronUp size={18} color="#64748b" />
@@ -445,7 +433,7 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
                 <View style={styles.inferenceRow}>
                   <Zap size={12} color="#94a3b8" />
                   <Text style={styles.inferenceText}>
-                    {isHindi ? `${mlResult.inference_time_ms}ms में जांच पूरी` : `Scanned in ${mlResult.inference_time_ms}ms`}
+                    {t('scan.scannedIn', { ms: mlResult.inference_time_ms })}
                   </Text>
                 </View>
               )}
@@ -462,7 +450,7 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
               </View>
               <View style={styles.statusTextBlock}>
                 <Text style={styles.statusTitle}>
-                  {isHindi ? 'AI जांच परिणाम' : 'AI Analysis Result'}
+                  {t('scan.aiResult')}
                 </Text>
                 <Text style={styles.cropLabel}>Gemini AI</Text>
               </View>
@@ -476,13 +464,13 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
                     <>
                       <View style={styles.diseaseBlock}>
                         <Text style={styles.sectionLabel}>
-                          {isHindi ? 'समस्या' : 'PROBLEM DETECTED'}
+                          {t('scan.problemDetected')}
                         </Text>
                         <Text style={styles.diseaseName}>{parsed.diagnosis}</Text>
                       </View>
                       <View style={styles.infoSection}>
                         <Text style={styles.sectionLabel}>
-                          {isHindi ? 'उपचार' : 'TREATMENT'}
+                          {t('scan.treatment')}
                         </Text>
                         {parsed.steps.map((step, idx) => (
                           <View key={idx} style={styles.stepRow}>
@@ -507,7 +495,7 @@ const PestDoctor: React.FC<PestDoctorProps> = ({ language }) => {
           <TouchableOpacity onPress={handleClear} style={styles.scanAgainBtn}>
             <Leaf size={18} color="#16a34a" />
             <Text style={styles.scanAgainText}>
-              {isHindi ? 'नई फोटो स्कैन करें' : 'Scan Another Leaf'}
+              {t('scan.scanAnother')}
             </Text>
           </TouchableOpacity>
         )}

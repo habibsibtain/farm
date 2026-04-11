@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-nati
 import WeatherWidget from '../Features/WeatherWidget';
 import { AppView, Language } from '../../types';
 import { MessageSquare, ScanLine, TrendingUp, ChevronRight, Sprout } from 'lucide-react-native';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface HomeViewProps {
   language: Language;
@@ -12,17 +13,16 @@ interface HomeViewProps {
 }
 
 const HomeView: React.FC<HomeViewProps> = ({ language, setView, userName, farmCount }) => {
-  const isHindi = language === Language.HINDI;
+  const { t } = useLanguage();
 
-  // Personalized greeting
-  const displayName = userName || (isHindi ? 'किसान' : 'Farmer');
-  const greeting = isHindi ? `नमस्ते, ${displayName}!` : `Namaste, ${displayName}!`;
+  const displayName = userName || t('common.farmer');
+  const greeting = t('home.greeting', { name: displayName });
 
   const cards = [
     {
       id: 'chat',
-      title: isHindi ? 'फसल सलाह' : 'Crop Advisory',
-      desc: isHindi ? 'विशेषज्ञ से पूछें' : 'Ask the expert',
+      title: t('home.cropAdvisory'),
+      desc: t('home.cropAdvisoryDesc'),
       icon: MessageSquare,
       iconColor: '#15803d',
       bgColor: '#dcfce7',
@@ -30,8 +30,8 @@ const HomeView: React.FC<HomeViewProps> = ({ language, setView, userName, farmCo
     },
     {
       id: 'scan',
-      title: isHindi ? 'रोग पहचान' : 'Disease Check',
-      desc: isHindi ? 'फोटो अपलोड करें' : 'Upload photo',
+      title: t('home.diseaseCheck'),
+      desc: t('home.diseaseCheckDesc'),
       icon: ScanLine,
       iconColor: '#c2410c',
       bgColor: '#ffedd5',
@@ -39,8 +39,8 @@ const HomeView: React.FC<HomeViewProps> = ({ language, setView, userName, farmCo
     },
     {
       id: 'market',
-      title: isHindi ? 'बाज़ार भाव' : 'Market Prices',
-      desc: isHindi ? 'ताज़ा अपडेट' : 'Latest updates',
+      title: t('home.marketPrices'),
+      desc: t('home.marketPricesDesc'),
       icon: TrendingUp,
       iconColor: '#1d4ed8',
       bgColor: '#dbeafe',
@@ -53,7 +53,7 @@ const HomeView: React.FC<HomeViewProps> = ({ language, setView, userName, farmCo
       <View style={styles.header}>
         <Text style={styles.welcome}>{greeting}</Text>
         <Text style={styles.subWelcome}>
-          {isHindi ? 'आइए, आज की खेती की तैयारी देखें।' : "Let's gently plan for your farm today."}
+          {t('home.subtitle')}
         </Text>
       </View>
 
@@ -62,9 +62,7 @@ const HomeView: React.FC<HomeViewProps> = ({ language, setView, userName, farmCo
         <View style={styles.farmBadge}>
           <Sprout size={16} color="#15803d" />
           <Text style={styles.farmBadgeText}>
-            {isHindi
-              ? `🌾 ${farmCount} खेत जुड़े हैं`
-              : `🌾 ${farmCount} farm${farmCount > 1 ? 's' : ''} registered`}
+            🌾 {farmCount} farm{farmCount > 1 ? 's' : ''} registered
           </Text>
         </View>
       )}
@@ -72,7 +70,7 @@ const HomeView: React.FC<HomeViewProps> = ({ language, setView, userName, farmCo
       <WeatherWidget language={language} />
 
       <Text style={styles.sectionTitle}>
-        {isHindi ? 'सेवाएं' : 'Services'}
+        {t('home.services')}
       </Text>
 
       <View style={styles.grid}>
@@ -100,12 +98,10 @@ const HomeView: React.FC<HomeViewProps> = ({ language, setView, userName, farmCo
       {/* Daily Tip Card */}
       <View style={styles.tipCard}>
         <Text style={styles.tipTitle}>
-          {isHindi ? 'आज का सुझाव' : 'Tip of the Day'}
+          {t('home.tipOfDay')}
         </Text>
         <Text style={styles.tipText}>
-          {isHindi 
-            ? 'मिट्टी की नमी बनाए रखने के लिए गीली घास (mulch) का प्रयोग करें। इससे पानी की बचत होगी।' 
-            : 'Use organic mulch to retain soil moisture during the dry season. It reduces water need by 30%.'}
+          {t('home.tip')}
         </Text>
       </View>
     </ScrollView>

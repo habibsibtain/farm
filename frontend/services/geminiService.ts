@@ -1,7 +1,7 @@
 import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
 import { Language, MarketItem } from "../types";
 
-const apiKey = process.env.API_KEY || '';
+const apiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY || '';
 
 // Initialize client
 const getClient = () => new GoogleGenAI({ apiKey });

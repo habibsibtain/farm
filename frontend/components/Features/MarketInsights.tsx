@@ -7,6 +7,7 @@ import {
 import { Language, MarketItem } from '../../types';
 import { getMarketInsights } from '../../services/geminiService';
 import { priceForecastService, CropForecast } from '../../services/api';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface MarketInsightsProps {
   language: Language;
@@ -24,7 +25,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
   const [expandedCrop, setExpandedCrop] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'current' | 'forecast'>('current');
 
-  const isHindi = language === Language.HINDI;
+  const { t } = useLanguage();
 
   const fetchInsights = async () => {
     setLoading(true);
@@ -79,12 +80,9 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
   };
 
   const getTrendLabel = (trend: string) => {
-    if (isHindi) {
-      if (trend === 'UP') return 'बढ़त';
-      if (trend === 'DOWN') return 'गिरावट';
-      return 'स्थिर';
-    }
-    return trend;
+    if (trend === 'UP') return t('market.trendUp') || 'UP';
+    if (trend === 'DOWN') return t('market.trendDown') || 'DOWN';
+    return t('market.trendStable') || 'STABLE';
   };
 
   const getAdvisoryColor = (advisory: string) => {
@@ -100,14 +98,9 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
   };
 
   const getAdvisoryLabel = (advisory: string) => {
-    if (isHindi) {
-      if (advisory === 'sell') return 'बेचें';
-      if (advisory === 'hold') return 'रखें';
-      return 'प्रतीक्षा करें';
-    }
-    if (advisory === 'sell') return 'SELL';
-    if (advisory === 'hold') return 'HOLD';
-    return 'WAIT';
+    if (advisory === 'sell') return t('market.sellNow');
+    if (advisory === 'hold') return t('market.hold');
+    return t('market.retry');
   };
 
   const maxForecastPrice = (forecast: CropForecast) => {
@@ -130,10 +123,10 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
         <View style={styles.centerContainer}>
           <AlertCircle size={48} color="#cbd5e1" />
           <Text style={styles.errorText}>
-            {isHindi ? 'डेटा लोड करने में असमर्थ' : 'Unable to load market data'}
+            {t('market.noData')}
           </Text>
           <TouchableOpacity onPress={fetchInsights} style={styles.retryBtn}>
-            <Text style={styles.retryText}>Try Again</Text>
+            <Text style={styles.retryText}>{t('market.retry')}</Text>
           </TouchableOpacity>
         </View>
       );
@@ -161,7 +154,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
             <View style={styles.cardFooter}>
               <Text style={styles.advisory}>
                 <Text style={styles.tipLabel}>
-                  {'💡 '}{isHindi ? 'सुझाव:' : 'Tip:'}{' '}
+                  {'💡 '}{t('market.tip') || 'Tip:'}{' '}
                 </Text>
                 {item.advisory}
               </Text>
@@ -170,9 +163,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
         ))}
         <View style={styles.disclaimerContainer}>
           <Text style={styles.disclaimer}>
-            {isHindi
-              ? 'अस्वीकरण: कीमतें अनुमानित हैं और स्थान के अनुसार भिन्न हो सकती हैं।'
-              : 'Disclaimer: Prices are estimates and may vary by location.'}
+            {t('market.disclaimer') || 'Disclaimer: Prices are estimates and may vary by location.'}
           </Text>
         </View>
       </View>
@@ -186,7 +177,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#2563eb" />
           <Text style={styles.loadingText}>
-            {isHindi ? 'भविष्य के भाव लोड हो रहे हैं...' : 'Loading price predictions...'}
+            {t('market.loading')}
           </Text>
         </View>
       );
@@ -196,10 +187,10 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
         <View style={styles.centerContainer}>
           <AlertCircle size={48} color="#cbd5e1" />
           <Text style={styles.errorText}>
-            {isHindi ? 'भविष्य के भाव लोड नहीं हो सके' : 'Could not load price forecasts'}
+            {t('market.noData')}
           </Text>
           <TouchableOpacity onPress={fetchForecasts} style={styles.retryBtn}>
-            <Text style={styles.retryText}>{isHindi ? 'पुनः प्रयास' : 'Try Again'}</Text>
+            <Text style={styles.retryText}>{t('market.retry')}</Text>
           </TouchableOpacity>
         </View>
       );
@@ -221,7 +212,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
               <View style={styles.fcHeader}>
                 <View style={styles.fcLeft}>
                   <Text style={styles.fcCropName}>
-                    {isHindi ? fc.crop_hindi : fc.crop.charAt(0).toUpperCase() + fc.crop.slice(1)}
+                    {fc.crop_hindi || fc.crop.charAt(0).toUpperCase() + fc.crop.slice(1)}
                   </Text>
                   <View style={[
                     styles.fcTrendBadge,
@@ -255,7 +246,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
                   </Text>
                 </View>
                 <Text style={styles.fcAdvisoryHint}>
-                  {isHindi ? fc.advisory_text_hindi : fc.advisory_text}
+                  {fc.advisory_text_hindi || fc.advisory_text}
                 </Text>
               </View>
 
@@ -265,7 +256,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
                   <View style={styles.fcExpandHeader}>
                     <BarChart3 size={14} color="#64748b" />
                     <Text style={styles.fcExpandTitle}>
-                      {isHindi ? 'मासिक मूल्य पूर्वानुमान' : 'Monthly Price Forecast'}
+                      Monthly Price Forecast
                     </Text>
                   </View>
 
@@ -273,7 +264,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
                   <View style={styles.fcMonthRow}>
                     <Calendar size={12} color="#94a3b8" />
                     <Text style={styles.fcMonthLabel}>
-                      {isHindi ? 'आज' : 'Today'}
+                      Today
                     </Text>
                     <View style={styles.fcBarContainer}>
                       <View
@@ -318,7 +309,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
                     <View style={styles.fcConfidence}>
                       <ShieldCheck size={12} color="#94a3b8" />
                       <Text style={styles.fcConfidenceText}>
-                        {isHindi ? 'अपेक्षित मूल्य सीमा: ' : 'Expected range: '}
+                        Expected range: 
                         {'\u20B9'}{Math.round(fc.monthly_forecast[fc.monthly_forecast.length - 1].price_low)}
                         {' - '}
                         {'\u20B9'}{Math.round(fc.monthly_forecast[fc.monthly_forecast.length - 1].price_high)}
@@ -330,7 +321,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
                   {fc.best_sell_month && (
                     <View style={styles.fcBestSell}>
                       <Text style={styles.fcBestSellLabel}>
-                        {isHindi ? 'बेचने का सबसे अच्छा समय:' : 'Best time to sell:'}
+                        Best time to sell:
                       </Text>
                       <Text style={styles.fcBestSellValue}>
                         {fc.best_sell_month} @ {'\u20B9'}{Math.round(fc.best_sell_price || 0)}/q
@@ -343,7 +334,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
               {/* Tap hint */}
               {!isExpanded && (
                 <Text style={styles.fcTapHint}>
-                  {isHindi ? 'विवरण देखने के लिए टैप करें' : 'Tap for monthly forecast'}
+                  Tap for monthly forecast
                 </Text>
               )}
             </TouchableOpacity>
@@ -352,9 +343,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
 
         <View style={styles.disclaimerContainer}>
           <Text style={styles.disclaimer}>
-            {isHindi
-              ? 'अस्वीकरण: ये AI/ML पूर्वानुमान हैं। वास्तविक कीमतें भिन्न हो सकती हैं।'
-              : 'Disclaimer: These are AI/ML predictions. Actual prices may vary.'}
+            {t('market.disclaimer') || 'Disclaimer: These are AI/ML predictions. Actual prices may vary.'}
           </Text>
         </View>
       </View>
@@ -370,10 +359,10 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
             <View style={styles.iconBox}>
               <TrendingUp size={20} color="#2563eb" />
             </View>
-            <Text style={styles.title}>{isHindi ? 'मंडी भाव' : 'Mandi Rates'}</Text>
+            <Text style={styles.title}>{t('market.title')}</Text>
           </View>
           <Text style={styles.subtitle}>
-            {isHindi ? 'AI द्वारा अनुमानित भाव' : 'AI Estimated Prices'}
+            {t('market.subtitle')}
           </Text>
         </View>
         <TouchableOpacity
@@ -397,7 +386,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
         >
           <Sprout size={14} color={activeTab === 'current' ? '#2563eb' : '#94a3b8'} />
           <Text style={[styles.tabText, activeTab === 'current' && styles.tabTextActive]}>
-            {isHindi ? 'आज के भाव' : 'Current Prices'}
+            Current Prices
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -406,7 +395,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
         >
           <BarChart3 size={14} color={activeTab === 'forecast' ? '#2563eb' : '#94a3b8'} />
           <Text style={[styles.tabText, activeTab === 'forecast' && styles.tabTextActive]}>
-            {isHindi ? 'भविष्य के भाव' : 'Price Forecast'}
+            Price Forecast
           </Text>
         </TouchableOpacity>
       </View>
