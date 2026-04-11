@@ -3,6 +3,7 @@ Crop Disease Prediction - Flask REST API
 ==========================================
 REST API for serving crop disease predictions over HTTP.
 Designed to integrate with the KisanMitra backend.
+Uses PyTorch for inference.
 """
 
 import os
@@ -25,6 +26,7 @@ from config import (
     MAX_CONTENT_LENGTH,
     MODEL_DIR,
     MODEL_SAVE_NAME,
+    DEVICE,
     ensure_dirs,
 )
 from predict import CropDiseasePredictor
@@ -45,12 +47,12 @@ def get_predictor():
         print("[INFO] Loading prediction model...")
         model_path = os.path.join(MODEL_DIR, MODEL_SAVE_NAME)
 
-        # Check if we should use TFLite
-        tflite_path = os.path.join(MODEL_DIR, "crop_disease_model.tflite")
-        use_tflite = os.path.exists(tflite_path) and not os.path.exists(model_path)
+        # Check if we should use ONNX
+        onnx_path = os.path.join(MODEL_DIR, "crop_disease_model.onnx")
+        use_onnx = os.path.exists(onnx_path) and not os.path.exists(model_path)
 
-        predictor = CropDiseasePredictor(use_tflite=use_tflite)
-        print("[INFO] Model loaded and ready!")
+        predictor = CropDiseasePredictor(use_tflite=use_onnx)
+        print(f"[INFO] Model loaded and ready on {DEVICE}!")
     return predictor
 
 
@@ -64,6 +66,7 @@ def index():
         "service": "Crop Disease Prediction API",
         "version": "1.0.0",
         "status": "running",
+        "device": str(DEVICE),
         "endpoints": {
             "POST /predict": "Predict disease from leaf image",
             "POST /predict/batch": "Predict diseases for multiple images",
@@ -83,6 +86,7 @@ def health_check():
         "status": "healthy",
         "model_loaded": model_loaded,
         "model_file_exists": model_exists,
+        "device": str(DEVICE),
     })
 
 
@@ -287,8 +291,9 @@ if __name__ == "__main__":
     print("=" * 60)
     print("  🌱 Crop Disease Prediction API")
     print("=" * 60)
-    print(f"  ├── Host: {API_HOST}")
-    print(f"  ├── Port: {API_PORT}")
+    print(f"  ├── Host:   {API_HOST}")
+    print(f"  ├── Port:   {API_PORT}")
+    print(f"  ├── Device: {DEVICE}")
     print(f"  └── Max upload: {MAX_CONTENT_LENGTH / (1024*1024):.0f} MB")
     print("=" * 60)
 

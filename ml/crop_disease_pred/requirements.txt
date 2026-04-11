@@ -1,8 +1,12 @@
 # Crop Disease Prediction - Dependencies
 # =========================================
 
-# Core ML
-tensorflow>=2.12.0
+# Core ML (PyTorch with CUDA GPU support)
+torch>=2.0.0
+torchvision>=0.15.0
+torchinfo>=1.8.0
+
+# Numerical & ML utilities
 numpy>=1.24.0
 pandas>=2.0.0
 scikit-learn>=1.2.0
@@ -15,6 +19,10 @@ opencv-python>=4.7.0
 matplotlib>=3.7.0
 seaborn>=0.12.0
 
+# ONNX export for mobile deployment
+onnx>=1.14.0
+onnxruntime>=1.15.0
+
 # API
 flask>=2.3.0
 flask-cors>=4.0.0
@@ -22,3 +30,6 @@ flask-cors>=4.0.0
 # Utilities
 tqdm>=4.65.0
 kagglehub>=0.3.0
+
+# TensorBoard logging
+tensorboard>=2.12.0

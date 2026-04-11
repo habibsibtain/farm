@@ -2,9 +2,32 @@
 Crop Disease Prediction - Configuration
 ========================================
 Central configuration for all hyperparameters, paths, and settings.
+Uses PyTorch with automatic GPU detection.
 """
 
 import os
+import sys
+import torch
+
+# Fix Windows console encoding for emoji/unicode characters
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
+# ─── Device Configuration ────────────────────────────────────────────────────
+if torch.cuda.is_available():
+    DEVICE = torch.device("cuda")
+    GPU_NAME = torch.cuda.get_device_name(0)
+    GPU_MEMORY = f"{torch.cuda.get_device_properties(0).total_memory / (1024**3):.1f} GB"
+    print(f"[GPU] Using GPU: {GPU_NAME} ({GPU_MEMORY})")
+else:
+    DEVICE = torch.device("cpu")
+    GPU_NAME = None
+    GPU_MEMORY = None
+    print("[GPU] WARNING: No GPU detected, using CPU")
 
 # ─── Paths ────────────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -71,7 +94,7 @@ IMG_HEIGHT = 224
 IMG_WIDTH = 224
 IMG_SIZE = (IMG_HEIGHT, IMG_WIDTH)
 IMG_CHANNELS = 3
-INPUT_SHAPE = (IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS)
+INPUT_SHAPE = (IMG_CHANNELS, IMG_HEIGHT, IMG_WIDTH)  # PyTorch: C, H, W
 
 # ─── Training Hyperparameters ─────────────────────────────────────────────────
 BATCH_SIZE = 32
@@ -86,6 +109,9 @@ FINE_TUNE_EPOCHS = 10
 EARLY_STOPPING_PATIENCE = 5
 REDUCE_LR_PATIENCE = 3
 REDUCE_LR_FACTOR = 0.2
+
+# Number of DataLoader worker threads (0 = main thread only on Windows)
+NUM_WORKERS = 0  # Set to 0 for Windows compatibility; increase on Linux
 
 # ─── Data Augmentation ───────────────────────────────────────────────────────
 AUGMENTATION_CONFIG = {
@@ -102,8 +128,8 @@ AUGMENTATION_CONFIG = {
 
 # ─── Model Settings ──────────────────────────────────────────────────────────
 MODEL_BACKBONE = "MobileNetV2"  # Lightweight, suitable for mobile deployment
-MODEL_SAVE_NAME = "crop_disease_model.keras"
-TFLITE_MODEL_NAME = "crop_disease_model.tflite"
+MODEL_SAVE_NAME = "crop_disease_model.pth"
+ONNX_MODEL_NAME = "crop_disease_model.onnx"
 
 # ─── API Settings ─────────────────────────────────────────────────────────────
 API_HOST = "0.0.0.0"

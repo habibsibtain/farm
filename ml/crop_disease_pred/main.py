@@ -20,7 +20,21 @@ import argparse
 # Add current directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from config import ensure_dirs
+import torch
+from config import ensure_dirs, DEVICE
+
+
+def print_device_info():
+    """Print GPU/device information."""
+    print(f"\n  🖥️  PyTorch Version: {torch.__version__}")
+    print(f"  🖥️  Device:          {DEVICE}")
+    if torch.cuda.is_available():
+        print(f"  🎮 GPU:             {torch.cuda.get_device_name(0)}")
+        props = torch.cuda.get_device_properties(0)
+        print(f"  💾 VRAM:            {props.total_memory / (1024**3):.1f} GB")
+        print(f"  🔧 CUDA Version:    {torch.version.cuda}")
+    else:
+        print("  ⚠️  No GPU detected — training will use CPU (slower)")
 
 
 def run_download():
@@ -113,14 +127,13 @@ def run_api():
 
 def main():
     parser = argparse.ArgumentParser(
-        description="🌱 Crop Disease Prediction ML Pipeline",
+        description="🌱 Crop Disease Prediction ML Pipeline (PyTorch + GPU)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   python main.py --all                   # Full pipeline
   python main.py --download              # Download dataset only
   python main.py --train                 # Train model
-  python main.py --train --use-tf-data   # Train with tf.data (faster)
   python main.py --evaluate              # Evaluate model
   python main.py --predict leaf.jpg      # Predict single image
   python main.py --api                   # Start API server
@@ -136,8 +149,8 @@ Examples:
 
     parser.add_argument("--data-dir", type=str, default=None, help="Custom dataset directory")
     parser.add_argument("--model-path", type=str, default=None, help="Custom model path")
-    parser.add_argument("--use-tf-data", action="store_true", help="Use tf.data pipeline")
-    parser.add_argument("--tflite", action="store_true", help="Use TFLite model")
+    parser.add_argument("--use-tf-data", action="store_true", help="(Legacy flag, no effect)")
+    parser.add_argument("--tflite", action="store_true", help="Use ONNX model for inference")
 
     args = parser.parse_args()
 
@@ -150,8 +163,9 @@ Examples:
 
     print("🌱" * 30)
     print("  Crop Disease Prediction System")
-    print("  KisanMitra AI - ML Pipeline")
+    print("  KisanMitra AI - ML Pipeline (PyTorch)")
     print("🌱" * 30)
+    print_device_info()
 
     # ─── Run steps ─────────────────────────────────────────────────────────
     if args.all:

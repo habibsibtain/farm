@@ -259,3 +259,149 @@ export const soilService = {
     return request<ApiSoilDataListResponse>(`/soil/${farmId}`, "GET");
   },
 };
+
+// ── Crop Scan Service ─────────────────────────────────────────────────
+
+export interface CropScanPrediction {
+  class: string;
+  confidence: number;
+}
+
+export interface CropScanDiseaseInfo {
+  crop?: string;
+  disease?: string;
+  cause?: string;
+  symptoms?: string;
+  treatment?: string;
+  prevention?: string;
+}
+
+export interface CropScanResult {
+  success: boolean;
+  predicted_class: string;
+  confidence: number;
+  confidence_percentage: string;
+  crop: string;
+  disease: string;
+  is_healthy: boolean;
+  disease_info: CropScanDiseaseInfo;
+  top_k_predictions: CropScanPrediction[];
+  inference_time_ms: number;
+  error?: string;
+}
+
+export interface CropScanHealthResponse {
+  status: string;
+  ml_api: {
+    status: string;
+    model_loaded: boolean;
+    device: string;
+  };
+}
+
+const CROP_SCAN_TIMEOUT_MS = 30_000; // 30s for GPU inference
+
+export const cropScanService = {
+  /**
+   * Send a leaf image to the ML model for disease prediction.
+   * Uses multipart/form-data (not JSON) since we're uploading a file.
+   */
+  async predict(imageUri: string): Promise<CropScanResult> {
+    const token = getStoredToken();
+
+    const formData = new FormData();
+
+    // React Native / Expo: create file part from URI
+    const filename = imageUri.split("/").pop() || "leaf.jpg";
+    const match = /\.(\w+)$/.exec(filename);
+    const mimeType = match ? `image/${match[1]}` : "image/jpeg";
+
+    formData.append("image", {
+      uri: imageUri,
+      name: filename,
+      type: mimeType,
+    } as any);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CROP_SCAN_TIMEOUT_MS);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/crop-scan/predict`, {
+        method: "POST",
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+          // Do NOT set Content-Type — fetch sets it with the correct boundary
+        },
+        body: formData,
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Crop scan failed");
+      }
+
+      return res.json();
+    } catch (err: any) {
+      if (err.name === "AbortError") {
+        throw new Error("Scan timed out. Please try again.");
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  },
+
+  /**
+   * Send a base64 image to the ML model.
+   * Converts base64 to blob for upload.
+   */
+  async predictBase64(base64Data: string): Promise<CropScanResult> {
+    const token = getStoredToken();
+
+    // Convert base64 to blob
+    const byteChars = atob(base64Data);
+    const byteNumbers = new Array(byteChars.length);
+    for (let i = 0; i < byteChars.length; i++) {
+      byteNumbers[i] = byteChars.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: "image/jpeg" });
+
+    const formData = new FormData();
+    formData.append("image", blob, "leaf.jpg");
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CROP_SCAN_TIMEOUT_MS);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/crop-scan/predict`, {
+        method: "POST",
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: formData,
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Crop scan failed");
+      }
+
+      return res.json();
+    } catch (err: any) {
+      if (err.name === "AbortError") {
+        throw new Error("Scan timed out. Please try again.");
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  },
+
+  /** Check if the ML prediction service is healthy. */
+  async checkHealth(): Promise<CropScanHealthResponse> {
+    return request<CropScanHealthResponse>("/crop-scan/health", "GET");
+  },
+};

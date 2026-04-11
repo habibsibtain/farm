@@ -46,11 +46,13 @@ import authRoutes from './routes/auth.routes.js';
 import farmerRoutes from './routes/farmer.routes.js';
 import advisoryRoutes from './routes/advisory.routes.js';
 import soilRoutes from './routes/soil.routes.js';
+import cropScanRoutes from './routes/crop-scan.routes.js';
 
 app.use('/auth', authRoutes);
 app.use('/farmer', farmerRoutes);
 app.use('/advisory', advisoryRoutes);
 app.use('/soil', soilRoutes);
+app.use('/crop-scan', cropScanRoutes);
 
 // Global error handler — catches unhandled errors and returns JSON
 // eslint-disable-next-line no-unused-vars

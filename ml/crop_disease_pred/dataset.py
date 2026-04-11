@@ -2,24 +2,27 @@
 Crop Disease Prediction - Dataset Module
 ==========================================
 Handles downloading, preprocessing, and augmenting the PlantVillage dataset.
+Uses PyTorch DataLoaders with torchvision transforms.
 """
 
 import os
 import shutil
-import numpy as np
-from tqdm import tqdm
 
-import tensorflow as tf
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import torch
+from torch.utils.data import DataLoader, random_split
+from torchvision import datasets, transforms
 
 from config import (
     RAW_DATA_DIR,
     PROCESSED_DATA_DIR,
     IMG_SIZE,
+    IMG_HEIGHT,
+    IMG_WIDTH,
     BATCH_SIZE,
     VALIDATION_SPLIT,
     AUGMENTATION_CONFIG,
     KAGGLE_DATASET,
+    NUM_WORKERS,
     ensure_dirs,
 )
 
@@ -83,16 +86,59 @@ def download_dataset():
         raise
 
 
+def _get_transforms(is_training=True):
+    """
+    Create image transforms for training or validation.
+
+    Args:
+        is_training: If True, includes data augmentation.
+
+    Returns:
+        torchvision.transforms.Compose: Transform pipeline.
+    """
+    if is_training:
+        return transforms.Compose([
+            transforms.Resize((IMG_HEIGHT + 32, IMG_WIDTH + 32)),
+            transforms.RandomCrop((IMG_HEIGHT, IMG_WIDTH)),
+            transforms.RandomHorizontalFlip(p=0.5 if AUGMENTATION_CONFIG["horizontal_flip"] else 0.0),
+            transforms.RandomVerticalFlip(p=0.5 if AUGMENTATION_CONFIG["vertical_flip"] else 0.0),
+            transforms.RandomRotation(degrees=AUGMENTATION_CONFIG["rotation_range"]),
+            transforms.RandomAffine(
+                degrees=0,
+                translate=(AUGMENTATION_CONFIG["width_shift_range"], AUGMENTATION_CONFIG["height_shift_range"]),
+                shear=AUGMENTATION_CONFIG["shear_range"] * 100,  # degrees
+            ),
+            transforms.ColorJitter(
+                brightness=(AUGMENTATION_CONFIG["brightness_range"][0],
+                            AUGMENTATION_CONFIG["brightness_range"][1]),
+                contrast=0.2,
+            ),
+            transforms.RandomResizedCrop(
+                (IMG_HEIGHT, IMG_WIDTH),
+                scale=(1.0 - AUGMENTATION_CONFIG["zoom_range"], 1.0 + AUGMENTATION_CONFIG["zoom_range"]),
+                ratio=(0.9, 1.1),
+            ),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+    else:
+        return transforms.Compose([
+            transforms.Resize((IMG_HEIGHT, IMG_WIDTH)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+
+
 def create_data_generators(data_dir=None):
     """
-    Create training and validation data generators with augmentation.
+    Create training and validation data loaders with augmentation.
 
     Args:
         data_dir: Path to directory containing class subdirectories.
                   If None, uses default RAW_DATA_DIR/color.
 
     Returns:
-        tuple: (train_generator, validation_generator, class_names)
+        tuple: (train_loader, val_loader, class_names)
     """
     if data_dir is None:
         data_dir = os.path.join(RAW_DATA_DIR, "color")
@@ -107,118 +153,89 @@ def create_data_generators(data_dir=None):
     print(f"[INFO] Image size: {IMG_SIZE}")
     print(f"[INFO] Batch size: {BATCH_SIZE}")
 
-    # ─── Training data generator with augmentation ─────────────────────────
-    train_datagen = ImageDataGenerator(
-        rescale=1.0 / 255,
-        rotation_range=AUGMENTATION_CONFIG["rotation_range"],
-        width_shift_range=AUGMENTATION_CONFIG["width_shift_range"],
-        height_shift_range=AUGMENTATION_CONFIG["height_shift_range"],
-        shear_range=AUGMENTATION_CONFIG["shear_range"],
-        zoom_range=AUGMENTATION_CONFIG["zoom_range"],
-        horizontal_flip=AUGMENTATION_CONFIG["horizontal_flip"],
-        vertical_flip=AUGMENTATION_CONFIG["vertical_flip"],
-        fill_mode=AUGMENTATION_CONFIG["fill_mode"],
-        brightness_range=AUGMENTATION_CONFIG["brightness_range"],
-        validation_split=VALIDATION_SPLIT,
+    # Load the full dataset (with validation transforms first to get class names)
+    full_dataset = datasets.ImageFolder(data_dir, transform=_get_transforms(is_training=False))
+    class_names = full_dataset.classes
+    total_samples = len(full_dataset)
+
+    # Split into train and validation
+    val_size = int(total_samples * VALIDATION_SPLIT)
+    train_size = total_samples - val_size
+
+    train_dataset, val_dataset = random_split(
+        full_dataset,
+        [train_size, val_size],
+        generator=torch.Generator().manual_seed(42),
     )
 
-    # ─── Validation data generator (no augmentation, only rescaling) ───────
-    val_datagen = ImageDataGenerator(
-        rescale=1.0 / 255,
-        validation_split=VALIDATION_SPLIT,
-    )
+    # Apply training transforms to training set (wrap with a transform dataset)
+    train_dataset = _TransformDataset(train_dataset, _get_transforms(is_training=True))
 
-    # ─── Create generators ─────────────────────────────────────────────────
-    train_generator = train_datagen.flow_from_directory(
-        data_dir,
-        target_size=IMG_SIZE,
+    # ─── Create DataLoaders ────────────────────────────────────────────────
+    train_loader = DataLoader(
+        train_dataset,
         batch_size=BATCH_SIZE,
-        class_mode="categorical",
-        subset="training",
         shuffle=True,
-        seed=42,
+        num_workers=NUM_WORKERS,
+        pin_memory=True,
     )
 
-    validation_generator = val_datagen.flow_from_directory(
-        data_dir,
-        target_size=IMG_SIZE,
+    val_loader = DataLoader(
+        val_dataset,
         batch_size=BATCH_SIZE,
-        class_mode="categorical",
-        subset="validation",
         shuffle=False,
-        seed=42,
+        num_workers=NUM_WORKERS,
+        pin_memory=True,
     )
-
-    # Extract class names
-    class_names = list(train_generator.class_indices.keys())
 
     print(f"\n[INFO] Dataset Summary:")
-    print(f"  ├── Training samples:   {train_generator.samples}")
-    print(f"  ├── Validation samples: {validation_generator.samples}")
+    print(f"  ├── Training samples:   {train_size}")
+    print(f"  ├── Validation samples: {val_size}")
     print(f"  ├── Number of classes:  {len(class_names)}")
     print(f"  └── Class names: {class_names[:5]}... (showing first 5)")
 
-    return train_generator, validation_generator, class_names
+    return train_loader, val_loader, class_names
 
 
-def create_tf_dataset(data_dir=None):
+class _TransformDataset(torch.utils.data.Dataset):
+    """Wrapper to apply different transforms to a Subset."""
+
+    def __init__(self, subset, transform):
+        self.subset = subset
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.subset)
+
+    def __getitem__(self, idx):
+        # Get the original image path and label from the underlying dataset
+        original_dataset = self.subset.dataset
+        original_idx = self.subset.indices[idx]
+
+        img_path, label = original_dataset.samples[original_idx]
+
+        # Load and transform the image
+        from PIL import Image
+        img = Image.open(img_path).convert("RGB")
+
+        if self.transform:
+            img = self.transform(img)
+
+        return img, label
+
+
+def create_dataloaders(data_dir=None):
     """
-    Create tf.data.Dataset pipelines (alternative to generators, faster).
+    Create optimized PyTorch DataLoader pipelines.
+    (Alternative name for create_data_generators for clarity.)
 
     Args:
         data_dir: Path to directory with class subdirectories.
 
     Returns:
-        tuple: (train_ds, val_ds, class_names)
+        tuple: (train_loader, val_loader, class_names)
     """
-    if data_dir is None:
-        data_dir = os.path.join(RAW_DATA_DIR, "color")
-
-    if not os.path.exists(data_dir):
-        raise FileNotFoundError(f"Dataset directory not found: {data_dir}")
-
-    print(f"[INFO] Creating tf.data pipelines from: {data_dir}")
-
-    train_ds = tf.keras.utils.image_dataset_from_directory(
-        data_dir,
-        validation_split=VALIDATION_SPLIT,
-        subset="training",
-        seed=42,
-        image_size=IMG_SIZE,
-        batch_size=BATCH_SIZE,
-        label_mode="categorical",
-    )
-
-    val_ds = tf.keras.utils.image_dataset_from_directory(
-        data_dir,
-        validation_split=VALIDATION_SPLIT,
-        subset="validation",
-        seed=42,
-        image_size=IMG_SIZE,
-        batch_size=BATCH_SIZE,
-        label_mode="categorical",
-    )
-
-    class_names = train_ds.class_names
-
-    # ─── Performance optimization ──────────────────────────────────────────
-    AUTOTUNE = tf.data.AUTOTUNE
-
-    # Normalize pixel values to [0, 1]
-    normalization_layer = tf.keras.layers.Rescaling(1.0 / 255)
-
-    train_ds = train_ds.map(lambda x, y: (normalization_layer(x), y), num_parallel_calls=AUTOTUNE)
-    val_ds = val_ds.map(lambda x, y: (normalization_layer(x), y), num_parallel_calls=AUTOTUNE)
-
-    # Cache, shuffle, prefetch
-    train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
-    val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
-
-    print(f"[INFO] Created optimized tf.data pipelines")
-    print(f"  ├── Classes: {len(class_names)}")
-    print(f"  └── First 5 classes: {class_names[:5]}")
-
-    return train_ds, val_ds, class_names
+    return create_data_generators(data_dir)
 
 
 def get_dataset_stats(data_dir=None):
@@ -260,6 +277,15 @@ if __name__ == "__main__":
     # Step 2: Show stats
     get_dataset_stats(data_path)
 
-    # Step 3: Test generators
-    train_gen, val_gen, classes = create_data_generators(data_path)
+    # Step 3: Test data loaders
+    train_loader, val_loader, classes = create_data_generators(data_path)
+
+    # Verify a batch
+    for images, labels in train_loader:
+        print(f"\n[INFO] Sample batch:")
+        print(f"  ├── Images shape: {images.shape}")
+        print(f"  ├── Labels shape: {labels.shape}")
+        print(f"  └── Dtype: {images.dtype}")
+        break
+
     print(f"\n[SUCCESS] Dataset ready with {len(classes)} classes!")
