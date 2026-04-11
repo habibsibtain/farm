@@ -476,3 +476,47 @@ export const cropRecommendService = {
     return request<CropRecommendResult>("/crop-recommend/suggest", "POST", payload);
   },
 };
+
+// ── Price Forecast Service ────────────────────────────────────────────
+
+export interface MonthlyForecast {
+  month: string;
+  predicted_price: number;
+  price_low: number;
+  price_high: number;
+}
+
+export interface CropForecast {
+  crop: string;
+  crop_hindi: string;
+  current_price: number;
+  trend: "UP" | "DOWN" | "STABLE";
+  price_change_pct: number;
+  advisory: "hold" | "sell" | "wait";
+  advisory_text: string;
+  advisory_text_hindi: string;
+  monthly_forecast: MonthlyForecast[];
+  best_sell_month?: string;
+  best_sell_price?: number;
+}
+
+export interface AllForecastsResponse {
+  success: boolean;
+  crops: CropForecast[];
+  total: number;
+}
+
+export interface SingleForecastResponse extends CropForecast {
+  success: boolean;
+  mae: number;
+  mape: number;
+}
+
+export const priceForecastService = {
+  async getAll(): Promise<AllForecastsResponse> {
+    return request<AllForecastsResponse>("/price-forecast/all", "GET");
+  },
+  async getCrop(crop: string, months: number = 3): Promise<SingleForecastResponse> {
+    return request<SingleForecastResponse>(`/price-forecast/${encodeURIComponent(crop)}?months=${months}`, "GET");
+  },
+};

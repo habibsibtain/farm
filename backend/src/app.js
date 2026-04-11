@@ -48,6 +48,7 @@ import advisoryRoutes from './routes/advisory.routes.js';
 import soilRoutes from './routes/soil.routes.js';
 import cropScanRoutes from './routes/crop-scan.routes.js';
 import cropRecommendRoutes from './routes/crop-recommend.routes.js';
+import priceForecastRoutes from './routes/price-forecast.routes.js';
 
 app.use('/auth', authRoutes);
 app.use('/farmer', farmerRoutes);
@@ -55,6 +56,7 @@ app.use('/advisory', advisoryRoutes);
 app.use('/soil', soilRoutes);
 app.use('/crop-scan', cropScanRoutes);
 app.use('/crop-recommend', cropRecommendRoutes);
+app.use('/price-forecast', priceForecastRoutes);
 
 // Global error handler — catches unhandled errors and returns JSON
 // eslint-disable-next-line no-unused-vars
