@@ -6,7 +6,7 @@ import SoilData from "../models/SoilData.js";
 export const generateAdvisory = async (req, res) => {
   try {
     const { farmId } = req.params;
-    if ( !farmId ) {
+    if (!farmId) {
       return res.status(400).json({ message: "Please select a farm to get advise." });
     }
 
@@ -47,8 +47,8 @@ export const generateAdvisory = async (req, res) => {
     await advisory.save();
     res.status(201).json({ message: "Advisory generated successfully.", advisory });
   } catch (error) {
-      console.error("Error generating advisory:", error);
-      res.status(500).json({ message: "Failed to generate advisory." });
+    console.error("Error generating advisory:", error);
+    res.status(500).json({ message: "Failed to generate advisory." });
   }
 }
 
@@ -73,7 +73,7 @@ export const getAdvisoryHistory = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
-    const totalAdvisories = await CropAdvisory.countDocuments({ farmId: farm._id , userId: req.user._id });
+    const totalAdvisories = await CropAdvisory.countDocuments({ farmId: farm._id, userId: req.user._id });
     const totalPages = Math.ceil(totalAdvisories / limit);
 
     res.status(200).json({

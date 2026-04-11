@@ -2,6 +2,7 @@
 Crop Disease Prediction - Inference Module
 ============================================
 Single-image prediction with confidence scores and disease information.
+Uses PyTorch for inference with optional ONNX runtime support.
 """
 
 import os
@@ -9,18 +10,30 @@ import json
 import numpy as np
 from PIL import Image
 
-import tensorflow as tf
+import torch
+from torchvision import transforms
 
 from config import (
     IMG_SIZE,
+    IMG_HEIGHT,
+    IMG_WIDTH,
     MODEL_DIR,
     MODEL_SAVE_NAME,
     CLASS_NAMES,
     DISEASE_INFO,
     DEFAULT_DISEASE_INFO,
+    DEVICE,
     ensure_dirs,
 )
 from model import load_model
+
+
+# ─── Standard inference transforms (must match training validation transforms)
+_inference_transform = transforms.Compose([
+    transforms.Resize((IMG_HEIGHT, IMG_WIDTH)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+])
 
 
 class CropDiseasePredictor:
@@ -39,9 +52,9 @@ class CropDiseasePredictor:
 
         Args:
             model_path: Path to the trained model file.
-            use_tflite: If True, use TFLite model for faster inference.
+            use_tflite: If True, use ONNX model for faster inference (kept for CLI compat).
         """
-        self.use_tflite = use_tflite
+        self.use_onnx = use_tflite  # Map tflite flag to ONNX for backward compat
 
         # Load class names
         class_names_path = os.path.join(MODEL_DIR, "class_names.json")
@@ -52,32 +65,36 @@ class CropDiseasePredictor:
             self.class_names = CLASS_NAMES
 
         # Load model
-        if use_tflite:
-            self._load_tflite_model(model_path)
+        if self.use_onnx:
+            self._load_onnx_model(model_path)
         else:
-            self._load_keras_model(model_path)
+            self._load_pytorch_model(model_path)
 
-        print(f"[INFO] Predictor initialized ({len(self.class_names)} classes)")
+        print(f"[INFO] Predictor initialized ({len(self.class_names)} classes, device={DEVICE})")
 
-    def _load_keras_model(self, model_path=None):
-        """Load Keras model."""
+    def _load_pytorch_model(self, model_path=None):
+        """Load PyTorch model."""
         if model_path is None:
             model_path = os.path.join(MODEL_DIR, MODEL_SAVE_NAME)
-        self.model = load_model(model_path)
+        self.model = load_model(model_path, num_classes=len(self.class_names))
+        self.model.eval()
 
-    def _load_tflite_model(self, model_path=None):
-        """Load TFLite model for efficient inference."""
+    def _load_onnx_model(self, model_path=None):
+        """Load ONNX model for efficient cross-platform inference."""
         if model_path is None:
-            model_path = os.path.join(MODEL_DIR, "crop_disease_model.tflite")
+            model_path = os.path.join(MODEL_DIR, "crop_disease_model.onnx")
 
         if not os.path.exists(model_path):
-            raise FileNotFoundError(f"TFLite model not found: {model_path}")
+            raise FileNotFoundError(f"ONNX model not found: {model_path}")
 
-        self.interpreter = tf.lite.Interpreter(model_path=model_path)
-        self.interpreter.allocate_tensors()
-        self.input_details = self.interpreter.get_input_details()
-        self.output_details = self.interpreter.get_output_details()
-        print(f"[INFO] TFLite model loaded from: {model_path}")
+        try:
+            import onnxruntime as ort
+            self.ort_session = ort.InferenceSession(model_path)
+            self.onnx_input_name = self.ort_session.get_inputs()[0].name
+            print(f"[INFO] ONNX model loaded from: {model_path}")
+        except ImportError:
+            print("[ERROR] onnxruntime not installed. Install with: pip install onnxruntime")
+            raise
 
     def preprocess_image(self, image_input):
         """
@@ -91,7 +108,7 @@ class CropDiseasePredictor:
                 - bytes: Raw image bytes
 
         Returns:
-            np.ndarray: Preprocessed image array of shape (1, H, W, 3).
+            torch.Tensor: Preprocessed image tensor of shape (1, C, H, W).
         """
         # Handle different input types
         if isinstance(image_input, str):
@@ -108,16 +125,10 @@ class CropDiseasePredictor:
         else:
             raise TypeError(f"Unsupported image type: {type(image_input)}")
 
-        # Resize
-        img = img.resize(IMG_SIZE, Image.Resampling.LANCZOS)
+        # Apply transforms and add batch dimension
+        img_tensor = _inference_transform(img).unsqueeze(0)
 
-        # Convert to numpy and normalize
-        img_array = np.array(img, dtype=np.float32) / 255.0
-
-        # Add batch dimension
-        img_array = np.expand_dims(img_array, axis=0)
-
-        return img_array
+        return img_tensor
 
     def predict(self, image_input, top_k=5):
         """
@@ -138,15 +149,18 @@ class CropDiseasePredictor:
                 - is_healthy: Whether the plant is classified as healthy
         """
         # Preprocess
-        img_array = self.preprocess_image(image_input)
+        img_tensor = self.preprocess_image(image_input)
 
         # Predict
-        if self.use_tflite:
-            self.interpreter.set_tensor(self.input_details[0]["index"], img_array)
-            self.interpreter.invoke()
-            predictions = self.interpreter.get_tensor(self.output_details[0]["index"])[0]
+        if self.use_onnx:
+            img_numpy = img_tensor.numpy()
+            outputs = self.ort_session.run(None, {self.onnx_input_name: img_numpy})
+            predictions = torch.softmax(torch.tensor(outputs[0]), dim=1)[0].numpy()
         else:
-            predictions = self.model.predict(img_array, verbose=0)[0]
+            img_tensor = img_tensor.to(DEVICE)
+            with torch.no_grad():
+                outputs = self.model(img_tensor)
+                predictions = torch.softmax(outputs, dim=1)[0].cpu().numpy()
 
         # Get top-k indices
         top_k_indices = np.argsort(predictions)[::-1][:top_k]
@@ -225,7 +239,7 @@ def predict_single(image_path, model_path=None, use_tflite=False, top_k=5):
     Args:
         image_path: Path to the leaf image.
         model_path: Path to model file (optional).
-        use_tflite: Whether to use TFLite model.
+        use_tflite: Whether to use ONNX model (kept for CLI compat).
         top_k: Number of top predictions.
 
     Returns:
@@ -242,7 +256,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Predict Crop Disease from Leaf Image")
     parser.add_argument("image", type=str, help="Path to leaf image")
     parser.add_argument("--model-path", type=str, default=None, help="Path to model")
-    parser.add_argument("--tflite", action="store_true", help="Use TFLite model")
+    parser.add_argument("--tflite", action="store_true", help="Use ONNX model")
     parser.add_argument("--top-k", type=int, default=5, help="Number of top predictions")
     args = parser.parse_args()
 

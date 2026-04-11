@@ -1,8 +1,10 @@
 # Data files (too large for git)
 data/
-models/
 logs/
 results/
+
+# Keep model files tracked (only ~15 MB, needed for inference)
+# models/  ← NOT ignored — your friend needs these to skip re-training
 
 # Python
 __pycache__/

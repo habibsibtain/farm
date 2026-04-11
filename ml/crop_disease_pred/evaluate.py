@@ -2,6 +2,7 @@
 Crop Disease Prediction - Evaluation Module
 =============================================
 Model evaluation with metrics, confusion matrix, and visualization.
+Uses PyTorch for inference.
 """
 
 import os
@@ -19,7 +20,8 @@ from sklearn.metrics import (
     precision_recall_fscore_support,
 )
 
-import tensorflow as tf
+import torch
+from tqdm import tqdm
 
 from config import (
     IMG_SIZE,
@@ -28,6 +30,7 @@ from config import (
     MODEL_DIR,
     RESULTS_DIR,
     MODEL_SAVE_NAME,
+    DEVICE,
     ensure_dirs,
 )
 from model import load_model
@@ -51,23 +54,42 @@ def evaluate_model(model=None, data_dir=None, save_plots=True):
     if model is None:
         model = load_model()
 
+    model.eval()
+    model.to(DEVICE)
+
     if data_dir is None:
         data_dir = os.path.join(RAW_DATA_DIR, "color")
 
     print("=" * 70)
     print("  📊 Model Evaluation")
     print("=" * 70)
+    print(f"  Device: {DEVICE}")
 
-    # ─── Create validation generator ──────────────────────────────────────
-    _, val_gen, class_names = create_data_generators(data_dir)
+    # ─── Create validation data loader ────────────────────────────────────
+    _, val_loader, class_names = create_data_generators(data_dir)
 
     # ─── Get predictions ──────────────────────────────────────────────────
     print("\n[INFO] Running predictions on validation set...")
-    val_gen.reset()
 
-    y_pred_probs = model.predict(val_gen, verbose=1)
-    y_pred = np.argmax(y_pred_probs, axis=1)
-    y_true = val_gen.classes[: len(y_pred)]
+    all_preds = []
+    all_labels = []
+    all_probs = []
+
+    with torch.no_grad():
+        for images, labels in tqdm(val_loader, desc="  Evaluating", ncols=80):
+            images = images.to(DEVICE)
+            outputs = model(images)
+
+            probs = torch.softmax(outputs, dim=1)
+            _, predicted = outputs.max(1)
+
+            all_preds.extend(predicted.cpu().numpy())
+            all_labels.extend(labels.numpy())
+            all_probs.extend(probs.cpu().numpy())
+
+    y_pred = np.array(all_preds)
+    y_true = np.array(all_labels)
+    y_pred_probs = np.array(all_probs)
 
     # ─── Metrics ──────────────────────────────────────────────────────────
     accuracy = accuracy_score(y_true, y_pred)
@@ -103,6 +125,7 @@ def evaluate_model(model=None, data_dir=None, save_plots=True):
         "f1_score": round(f1, 4),
         "num_classes": len(class_names),
         "num_samples_evaluated": len(y_true),
+        "device": str(DEVICE),
         "per_class_report": report,
     }
 
@@ -223,9 +246,10 @@ def plot_prediction_confidence(y_pred_probs, y_true, y_pred):
     axes[0].set_title("Confidence: Correct Predictions", fontsize=12, fontweight="bold")
     axes[0].set_xlabel("Confidence Score")
     axes[0].set_ylabel("Count")
-    axes[0].axvline(x=np.mean(max_probs[correct_mask]), color="red", linestyle="--",
-                     label=f"Mean: {np.mean(max_probs[correct_mask]):.3f}")
-    axes[0].legend()
+    if np.sum(correct_mask) > 0:
+        axes[0].axvline(x=np.mean(max_probs[correct_mask]), color="red", linestyle="--",
+                         label=f"Mean: {np.mean(max_probs[correct_mask]):.3f}")
+        axes[0].legend()
 
     # Incorrect predictions confidence
     if np.sum(~correct_mask) > 0:
@@ -255,8 +279,8 @@ def plot_training_history(history_transfer=None, history_finetune=None):
     Plot training history curves (loss and accuracy).
 
     Args:
-        history_transfer: History from transfer learning phase.
-        history_finetune: History from fine-tuning phase.
+        history_transfer: History from transfer learning phase (object with .history dict).
+        history_finetune: History from fine-tuning phase (object with .history dict).
     """
     ensure_dirs()
     print("[INFO] Generating training history plots...")
@@ -265,10 +289,12 @@ def plot_training_history(history_transfer=None, history_finetune=None):
     labels = []
 
     if history_transfer:
-        histories.append(history_transfer.history)
+        hist = history_transfer.history if hasattr(history_transfer, "history") else history_transfer
+        histories.append(hist)
         labels.append("Transfer Learning")
     if history_finetune:
-        histories.append(history_finetune.history)
+        hist = history_finetune.history if hasattr(history_finetune, "history") else history_finetune
+        histories.append(hist)
         labels.append("Fine-Tuning")
 
     if not histories:
