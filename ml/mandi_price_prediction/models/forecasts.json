@@ -1,0 +1,437 @@
+{
+  "wheat": {
+    "crop": "wheat",
+    "crop_hindi": "गेहूँ",
+    "current_price": 6008.22,
+    "trend": "UP",
+    "price_change_pct": 62.8,
+    "monthly_forecast": [
+      {
+        "month": "2026-04",
+        "predicted_price": 9755.19,
+        "price_low": 9552.52,
+        "price_high": 9936.76
+      },
+      {
+        "month": "2026-05",
+        "predicted_price": 10189.98,
+        "price_low": 9826.22,
+        "price_high": 10500.37
+      },
+      {
+        "month": "2026-06",
+        "predicted_price": 9779.15,
+        "price_low": 9233.45,
+        "price_high": 10267.68
+      }
+    ],
+    "mae": 188.97,
+    "mape": 2.82
+  },
+  "rice": {
+    "crop": "rice",
+    "crop_hindi": "धान",
+    "current_price": 666.67,
+    "trend": "UP",
+    "price_change_pct": 60.0,
+    "monthly_forecast": [
+      {
+        "month": "2026-04",
+        "predicted_price": 1116.55,
+        "price_low": 1009.62,
+        "price_high": 1219.78
+      },
+      {
+        "month": "2026-05",
+        "predicted_price": 1075.75,
+        "price_low": 946.97,
+        "price_high": 1195.74
+      },
+      {
+        "month": "2026-06",
+        "predicted_price": 1066.69,
+        "price_low": 907.52,
+        "price_high": 1210.41
+      }
+    ],
+    "mae": 57.87,
+    "mape": 5.03
+  },
+  "maize": {
+    "crop": "maize",
+    "crop_hindi": "मक्का",
+    "current_price": 600.0,
+    "trend": "UP",
+    "price_change_pct": 24.4,
+    "monthly_forecast": [
+      {
+        "month": "2026-04",
+        "predicted_price": 861.06,
+        "price_low": 731.3,
+        "price_high": 991.48
+      },
+      {
+        "month": "2026-05",
+        "predicted_price": 769.64,
+        "price_low": 624.91,
+        "price_high": 918.19
+      },
+      {
+        "month": "2026-06",
+        "predicted_price": 746.54,
+        "price_low": 577.56,
+        "price_high": 920.92
+      }
+    ],
+    "mae": 87.79,
+    "mape": 10.1
+  },
+  "cotton": {
+    "crop": "cotton",
+    "crop_hindi": "कपास",
+    "current_price": 5871.92,
+    "trend": "DOWN",
+    "price_change_pct": -29.3,
+    "monthly_forecast": [
+      {
+        "month": "2026-04",
+        "predicted_price": 5411.82,
+        "price_low": 4901.94,
+        "price_high": 5907.9
+      },
+      {
+        "month": "2026-05",
+        "predicted_price": 4218.29,
+        "price_low": 3550.57,
+        "price_high": 4822.69
+      },
+      {
+        "month": "2026-06",
+        "predicted_price": 4149.34,
+        "price_low": 3293.33,
+        "price_high": 4911.2
+      }
+    ],
+    "mae": 527.63,
+    "mape": 4.34
+  },
+  "soybean": {
+    "crop": "soybean",
+    "crop_hindi": "सोयाबीन",
+    "current_price": 1333.33,
+    "trend": "UP",
+    "price_change_pct": 147.1,
+    "monthly_forecast": [
+      {
+        "month": "2026-04",
+        "predicted_price": 3255.34,
+        "price_low": 2907.6,
+        "price_high": 3611.45
+      },
+      {
+        "month": "2026-05",
+        "predicted_price": 3305.75,
+        "price_low": 2923.5,
+        "price_high": 3709.88
+      },
+      {
+        "month": "2026-06",
+        "predicted_price": 3295.12,
+        "price_low": 2876.1,
+        "price_high": 3754.14
+      }
+    ],
+    "mae": 508.95,
+    "mape": 25.49
+  },
+  "sugarcane": {
+    "crop": "sugarcane",
+    "crop_hindi": "गन्ना",
+    "current_price": 562.35,
+    "trend": "DOWN",
+    "price_change_pct": -8.3,
+    "monthly_forecast": [
+      {
+        "month": "2026-04",
+        "predicted_price": 813.72,
+        "price_low": 797.95,
+        "price_high": 829.95
+      },
+      {
+        "month": "2026-05",
+        "predicted_price": 657.59,
+        "price_low": 633.68,
+        "price_high": 684.33
+      },
+      {
+        "month": "2026-06",
+        "predicted_price": 515.87,
+        "price_low": 480.78,
+        "price_high": 557.15
+      }
+    ],
+    "mae": 16.54,
+    "mape": 2.51
+  },
+  "onion": {
+    "crop": "onion",
+    "crop_hindi": "प्याज",
+    "current_price": 500.0,
+    "trend": "UP",
+    "price_change_pct": 464.0,
+    "monthly_forecast": [
+      {
+        "month": "2026-04",
+        "predicted_price": 687.81,
+        "price_low": 387.17,
+        "price_high": 997.33
+      },
+      {
+        "month": "2026-05",
+        "predicted_price": 1107.6,
+        "price_low": 800.94,
+        "price_high": 1414.17
+      },
+      {
+        "month": "2026-06",
+        "predicted_price": 2819.88,
+        "price_low": 2507.77,
+        "price_high": 3134.41
+      }
+    ],
+    "mae": 88.36,
+    "mape": 11.85
+  },
+  "tomato": {
+    "crop": "tomato",
+    "crop_hindi": "टमाटर",
+    "current_price": 2962.15,
+    "trend": "UP",
+    "price_change_pct": 416.8,
+    "monthly_forecast": [
+      {
+        "month": "2026-04",
+        "predicted_price": 5638.68,
+        "price_low": 5357.47,
+        "price_high": 5917.66
+      },
+      {
+        "month": "2026-05",
+        "predicted_price": 11399.2,
+        "price_low": 11100.97,
+        "price_high": 11699.99
+      },
+      {
+        "month": "2026-06",
+        "predicted_price": 15309.21,
+        "price_low": 14988.14,
+        "price_high": 15631.24
+      }
+    ],
+    "mae": 238.02,
+    "mape": 12.35
+  },
+  "potato": {
+    "crop": "potato",
+    "crop_hindi": "आलू",
+    "current_price": 494.28,
+    "trend": "UP",
+    "price_change_pct": 711.3,
+    "monthly_forecast": [
+      {
+        "month": "2026-04",
+        "predicted_price": 676.98,
+        "price_low": 551.59,
+        "price_high": 799.78
+      },
+      {
+        "month": "2026-05",
+        "predicted_price": 2308.64,
+        "price_low": 2182.97,
+        "price_high": 2432.6
+      },
+      {
+        "month": "2026-06",
+        "predicted_price": 4010.15,
+        "price_low": 3883.67,
+        "price_high": 4136.95
+      }
+    ],
+    "mae": 68.59,
+    "mape": 12.33
+  },
+  "mustard": {
+    "crop": "mustard",
+    "crop_hindi": "सरसों",
+    "current_price": 14766.03,
+    "trend": "UP",
+    "price_change_pct": 11.9,
+    "monthly_forecast": [
+      {
+        "month": "2026-04",
+        "predicted_price": 22239.85,
+        "price_low": 21759.95,
+        "price_high": 22761.89
+      },
+      {
+        "month": "2026-05",
+        "predicted_price": 19878.95,
+        "price_low": 19083.78,
+        "price_high": 20790.49
+      },
+      {
+        "month": "2026-06",
+        "predicted_price": 16528.26,
+        "price_low": 15327.43,
+        "price_high": 17945.68
+      }
+    ],
+    "mae": 371.95,
+    "mape": 2.26
+  },
+  "chickpea": {
+    "crop": "chickpea",
+    "crop_hindi": "चना",
+    "current_price": 10726.09,
+    "trend": "UP",
+    "price_change_pct": 57.4,
+    "monthly_forecast": [
+      {
+        "month": "2026-04",
+        "predicted_price": 17166.14,
+        "price_low": 16771.11,
+        "price_high": 17542.4
+      },
+      {
+        "month": "2026-05",
+        "predicted_price": 17928.35,
+        "price_low": 17255.63,
+        "price_high": 18559.73
+      },
+      {
+        "month": "2026-06",
+        "predicted_price": 16886.82,
+        "price_low": 15916.69,
+        "price_high": 17823.46
+      }
+    ],
+    "mae": 273.17,
+    "mape": 2.33
+  },
+  "pigeon_pea": {
+    "crop": "pigeon_pea",
+    "crop_hindi": "अरहर",
+    "current_price": 4957.63,
+    "trend": "DOWN",
+    "price_change_pct": -27.9,
+    "monthly_forecast": [
+      {
+        "month": "2026-04",
+        "predicted_price": 5223.83,
+        "price_low": 4951.19,
+        "price_high": 5507.56
+      },
+      {
+        "month": "2026-05",
+        "predicted_price": 3696.24,
+        "price_low": 3388.47,
+        "price_high": 4021.39
+      },
+      {
+        "month": "2026-06",
+        "predicted_price": 3576.33,
+        "price_low": 3233.28,
+        "price_high": 3961.68
+      }
+    ],
+    "mae": 300.22,
+    "mape": 3.58
+  },
+  "moong": {
+    "crop": "moong",
+    "crop_hindi": "मूंग",
+    "current_price": 2166.67,
+    "trend": "UP",
+    "price_change_pct": 102.3,
+    "monthly_forecast": [
+      {
+        "month": "2026-04",
+        "predicted_price": 4383.32,
+        "price_low": 3867.59,
+        "price_high": 4899.06
+      },
+      {
+        "month": "2026-05",
+        "predicted_price": 4288.63,
+        "price_low": 3753.49,
+        "price_high": 4809.3
+      },
+      {
+        "month": "2026-06",
+        "predicted_price": 4383.12,
+        "price_low": 3826.18,
+        "price_high": 4932.08
+      }
+    ],
+    "mae": 987.19,
+    "mape": 31.34
+  },
+  "urad": {
+    "crop": "urad",
+    "crop_hindi": "उड़द",
+    "current_price": 2000.0,
+    "trend": "UP",
+    "price_change_pct": 47.0,
+    "monthly_forecast": [
+      {
+        "month": "2026-04",
+        "predicted_price": 3029.97,
+        "price_low": 2544.09,
+        "price_high": 3523.94
+      },
+      {
+        "month": "2026-05",
+        "predicted_price": 2895.68,
+        "price_low": 2288.05,
+        "price_high": 3502.2
+      },
+      {
+        "month": "2026-06",
+        "predicted_price": 2939.85,
+        "price_low": 2163.64,
+        "price_high": 3706.99
+      }
+    ],
+    "mae": 261.81,
+    "mape": 9.12
+  },
+  "jowar": {
+    "crop": "jowar",
+    "crop_hindi": "ज्वार",
+    "current_price": 1000.0,
+    "trend": "UP",
+    "price_change_pct": 38.7,
+    "monthly_forecast": [
+      {
+        "month": "2026-04",
+        "predicted_price": 1557.56,
+        "price_low": 1378.0,
+        "price_high": 1738.35
+      },
+      {
+        "month": "2026-05",
+        "predicted_price": 1439.64,
+        "price_low": 1239.66,
+        "price_high": 1644.36
+      },
+      {
+        "month": "2026-06",
+        "predicted_price": 1387.01,
+        "price_low": 1165.38,
+        "price_high": 1615.64
+      }
+    ],
+    "mae": 207.89,
+    "mape": 11.88
+  }
+}

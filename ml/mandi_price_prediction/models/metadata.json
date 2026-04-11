@@ -1,0 +1,111 @@
+{
+  "crops": {
+    "wheat": {
+      "mae": 188.97,
+      "mape": 2.82,
+      "train_time": 0.95,
+      "current_price": 6008.22,
+      "trend": "UP"
+    },
+    "rice": {
+      "mae": 57.87,
+      "mape": 5.03,
+      "train_time": 0.55,
+      "current_price": 666.67,
+      "trend": "UP"
+    },
+    "maize": {
+      "mae": 87.79,
+      "mape": 10.1,
+      "train_time": 0.49,
+      "current_price": 600.0,
+      "trend": "UP"
+    },
+    "cotton": {
+      "mae": 527.63,
+      "mape": 4.34,
+      "train_time": 0.63,
+      "current_price": 5871.92,
+      "trend": "DOWN"
+    },
+    "soybean": {
+      "mae": 508.95,
+      "mape": 25.49,
+      "train_time": 0.59,
+      "current_price": 1333.33,
+      "trend": "UP"
+    },
+    "sugarcane": {
+      "mae": 16.54,
+      "mape": 2.51,
+      "train_time": 0.74,
+      "current_price": 562.35,
+      "trend": "DOWN"
+    },
+    "onion": {
+      "mae": 88.36,
+      "mape": 11.85,
+      "train_time": 0.43,
+      "current_price": 500.0,
+      "trend": "UP"
+    },
+    "tomato": {
+      "mae": 238.02,
+      "mape": 12.35,
+      "train_time": 0.51,
+      "current_price": 2962.15,
+      "trend": "UP"
+    },
+    "potato": {
+      "mae": 68.59,
+      "mape": 12.33,
+      "train_time": 0.41,
+      "current_price": 494.28,
+      "trend": "UP"
+    },
+    "mustard": {
+      "mae": 371.95,
+      "mape": 2.26,
+      "train_time": 0.75,
+      "current_price": 14766.03,
+      "trend": "UP"
+    },
+    "chickpea": {
+      "mae": 273.17,
+      "mape": 2.33,
+      "train_time": 0.62,
+      "current_price": 10726.09,
+      "trend": "UP"
+    },
+    "pigeon_pea": {
+      "mae": 300.22,
+      "mape": 3.58,
+      "train_time": 0.52,
+      "current_price": 4957.63,
+      "trend": "DOWN"
+    },
+    "moong": {
+      "mae": 987.19,
+      "mape": 31.34,
+      "train_time": 0.41,
+      "current_price": 2166.67,
+      "trend": "UP"
+    },
+    "urad": {
+      "mae": 261.81,
+      "mape": 9.12,
+      "train_time": 0.52,
+      "current_price": 2000.0,
+      "trend": "UP"
+    },
+    "jowar": {
+      "mae": 207.89,
+      "mape": 11.88,
+      "train_time": 0.48,
+      "current_price": 1000.0,
+      "trend": "UP"
+    }
+  },
+  "trained_at": "2026-04-11 19:11",
+  "total_training_time": 8.59
+}

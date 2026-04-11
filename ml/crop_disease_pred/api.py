@@ -23,6 +23,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # Crop recommendation module path (loaded via importlib, NOT sys.path, to avoid name collision)
 CROP_REC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'crop_recommendation')
 
+# Mandi price prediction module path
+MANDI_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'mandi_price_prediction')
+
 from config import (
     API_HOST,
     API_PORT,
@@ -45,6 +48,9 @@ predictor = None
 
 # Global crop recommender instance
 crop_recommender = None
+
+# Global mandi price predictor instance
+mandi_predictor = None
 
 
 def get_predictor():
@@ -84,6 +90,27 @@ def get_crop_recommender():
     return crop_recommender
 
 
+def get_mandi_predictor():
+    """Lazy-load the mandi price predictor."""
+    global mandi_predictor
+    if mandi_predictor is None:
+        try:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location(
+                "mandi_predict",
+                os.path.join(MANDI_DIR, "predict.py")
+            )
+            mandi_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mandi_module)
+            mandi_predictor = mandi_module.MandiPricePredictor()
+            mandi_predictor.load()
+            print("[INFO] Mandi price predictor loaded!")
+        except Exception as e:
+            print(f"[WARN] Could not load mandi price predictor: {e}")
+            return None
+    return mandi_predictor
+
+
 # ─── Routes ────────────────────────────────────────────────────────────────────
 
 
@@ -92,13 +119,15 @@ def index():
     """API root - health check and info."""
     return jsonify({
         "service": "Crop Disease Prediction API",
-        "version": "2.0.0",
+        "version": "3.0.0",
         "status": "running",
         "device": str(DEVICE),
         "endpoints": {
             "POST /predict": "Predict disease from leaf image",
             "POST /predict/batch": "Predict diseases for multiple images",
             "POST /recommend": "Recommend crops based on soil/weather",
+            "GET /price-forecast/<crop>": "Get price forecast for a crop",
+            "GET /price-forecast/all": "Get forecasts for all crops",
             "GET /classes": "List all supported disease classes",
             "GET /health": "Health check",
         },
@@ -379,6 +408,63 @@ def recommend_crops():
             "success": False,
             "error": str(e),
         }), 500
+
+# ─── Mandi Price Forecast Routes ────────────────────────────────────────────────
+
+@app.route("/price-forecast/all", methods=["GET"])
+def price_forecast_all():
+    """Get price forecasts for all crops."""
+    try:
+        pred = get_mandi_predictor()
+        if pred is None:
+            return jsonify({
+                "success": False,
+                "error": "Mandi price prediction models not available",
+            }), 503
+
+        forecasts = pred.get_all_forecasts()
+        return jsonify({
+            "success": True,
+            "crops": forecasts,
+            "total": len(forecasts),
+        })
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/price-forecast/<crop>", methods=["GET"])
+def price_forecast_crop(crop):
+    """
+    Get price forecast for a specific crop.
+    Optional query param: months (default 3)
+    """
+    try:
+        pred = get_mandi_predictor()
+        if pred is None:
+            return jsonify({
+                "success": False,
+                "error": "Mandi price prediction models not available",
+            }), 503
+
+        months = request.args.get("months", 3, type=int)
+        result = pred.get_forecast(crop, months=months)
+
+        if result is None:
+            available = pred.get_available_crops()
+            return jsonify({
+                "success": False,
+                "error": f"Crop '{crop}' not found",
+                "available_crops": available,
+            }), 404
+
+        result["success"] = True
+        return jsonify(result)
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @app.errorhandler(404)
