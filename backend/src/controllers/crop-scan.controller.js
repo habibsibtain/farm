@@ -8,6 +8,91 @@ import FormData from 'form-data';
 const ML_API_URL = process.env.ML_API_URL || 'http://localhost:5001';
 
 /**
+ * Try to extract a meaningful error message from an axios error,
+ * handling the case where the ML API returns HTML (Flask debug page)
+ * instead of JSON.
+ */
+function extractMLError(error) {
+  if (error.code === 'ECONNREFUSED') {
+    return {
+      status: 503,
+      body: {
+        success: false,
+        error: 'ML prediction service is not running. Please start the Flask API.',
+        hint: 'Run: python3 ml/crop_disease_pred/api.py',
+      },
+    };
+  }
+
+  if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT') {
+    return {
+      status: 504,
+      body: {
+        success: false,
+        error: 'ML prediction service timed out. The model may still be loading.',
+      },
+    };
+  }
+
+  if (error.response) {
+    const contentType = error.response.headers?.['content-type'] || '';
+    const data = error.response.data;
+
+    // If the response is JSON, use it directly
+    if (contentType.includes('application/json') && typeof data === 'object') {
+      return {
+        status: error.response.status,
+        body: {
+          success: false,
+          error: data.error || data.message || 'ML API returned an error.',
+          details: data.details || undefined,
+        },
+      };
+    }
+
+    // If the response is HTML (e.g. Flask debug traceback), extract text
+    if (typeof data === 'string' && data.startsWith('<')) {
+      // Try to pull out the error message from the HTML
+      const titleMatch = data.match(/<title>(.*?)<\/title>/i);
+      const preMatch = data.match(/<pre[^>]*>([\s\S]*?)<\/pre>/i);
+      const errorHint = titleMatch?.[1] || 'Internal ML API error';
+      const traceSnippet = preMatch?.[1]?.slice(-300)?.replace(/<[^>]+>/g, '') || '';
+
+      console.error('[crop-scan] ML API returned HTML error page:', errorHint);
+      if (traceSnippet) console.error('[crop-scan] Trace:', traceSnippet);
+
+      return {
+        status: 500,
+        body: {
+          success: false,
+          error: `ML model error: ${errorHint}`,
+          details: traceSnippet || undefined,
+        },
+      };
+    }
+
+    // Fallback: stringify whatever we got
+    return {
+      status: error.response.status || 500,
+      body: {
+        success: false,
+        error: typeof data === 'string' ? data.slice(0, 200) : 'ML API returned an unexpected response.',
+      },
+    };
+  }
+
+  // No response at all (network error, etc.)
+  return {
+    status: 500,
+    body: {
+      success: false,
+      error: 'Failed to reach ML prediction service.',
+      details: error.message,
+    },
+  };
+}
+
+/**
  * POST /crop-scan/predict
  *
  * Receives a leaf image from the frontend (multipart/form-data),
@@ -34,38 +119,28 @@ export const predictDisease = async (req, res) => {
       headers: {
         ...form.getHeaders(),
       },
-      timeout: 30000, // 30s timeout for GPU inference
+      timeout: 60000, // 60s timeout for CPU inference (can be slow)
       maxContentLength: 50 * 1024 * 1024,
+      // Accept any status so we can handle errors ourselves
+      validateStatus: (status) => status < 500,
     });
+
+    // Check content-type: if it's not JSON, something went wrong
+    const contentType = mlResponse.headers?.['content-type'] || '';
+    if (!contentType.includes('application/json')) {
+      console.error('[crop-scan] ML API returned non-JSON response:', contentType);
+      return res.status(500).json({
+        success: false,
+        error: 'ML API returned an unexpected response. The model may have an error.',
+      });
+    }
 
     // Return the ML API response directly to the frontend
-    return res.status(200).json(mlResponse.data);
+    return res.status(mlResponse.status).json(mlResponse.data);
   } catch (error) {
     console.error('[crop-scan] Prediction error:', error.message);
-
-    // Distinguish between ML API unreachable vs other errors
-    if (error.code === 'ECONNREFUSED') {
-      return res.status(503).json({
-        success: false,
-        error: 'ML prediction service is not running. Please start the Flask API.',
-        hint: 'Run: python ml/crop_disease_pred/api.py',
-      });
-    }
-
-    if (error.response) {
-      // ML API returned an error response
-      return res.status(error.response.status).json({
-        success: false,
-        error: error.response.data?.error || 'ML API returned an error.',
-        details: error.response.data?.details,
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to process crop scan.',
-      details: error.message,
-    });
+    const { status, body } = extractMLError(error);
+    return res.status(status).json(body);
   }
 };
 
@@ -82,10 +157,11 @@ export const cropScanHealth = async (_req, res) => {
       ml_api: mlResponse.data,
     });
   } catch (error) {
+    const { body } = extractMLError(error);
     return res.status(503).json({
       status: 'degraded',
       ml_api: 'unreachable',
-      error: error.message,
+      error: body.error,
     });
   }
 };

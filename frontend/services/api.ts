@@ -336,15 +336,24 @@ export const cropScanService = {
         signal: controller.signal,
       });
 
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Crop scan failed");
+      // Read response as text first to avoid JSON parse errors on HTML responses
+      const responseText = await res.text();
+      let data: any;
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        console.error('[CropScan] Non-JSON response:', responseText.slice(0, 200));
+        throw new Error('ML service returned an invalid response. Please try again.');
       }
 
-      return res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Crop scan failed');
+      }
+
+      return data as CropScanResult;
     } catch (err: any) {
-      if (err.name === "AbortError") {
-        throw new Error("Scan timed out. Please try again.");
+      if (err.name === 'AbortError') {
+        throw new Error('Scan timed out. Please try again.');
       }
       throw err;
     } finally {
@@ -384,15 +393,24 @@ export const cropScanService = {
         signal: controller.signal,
       });
 
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Crop scan failed");
+      // Read response as text first to avoid JSON parse errors on HTML responses
+      const responseText = await res.text();
+      let data: any;
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        console.error('[CropScan] Non-JSON response:', responseText.slice(0, 200));
+        throw new Error('ML service returned an invalid response. Please try again.');
       }
 
-      return res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Crop scan failed');
+      }
+
+      return data as CropScanResult;
     } catch (err: any) {
-      if (err.name === "AbortError") {
-        throw new Error("Scan timed out. Please try again.");
+      if (err.name === 'AbortError') {
+        throw new Error('Scan timed out. Please try again.');
       }
       throw err;
     } finally {
