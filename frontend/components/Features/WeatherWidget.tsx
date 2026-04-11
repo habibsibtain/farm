@@ -5,6 +5,7 @@ import { Language } from '../../types';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useWeather } from '@/hooks/useWeather';
 import { useUserLocation } from '@/hooks/useUserLocation';
+import { useLanguage } from '../../context/LanguageContext';
 import ForecastRow from './ForecastRow';
 
 interface WeatherWidgetProps {
@@ -14,6 +15,7 @@ interface WeatherWidgetProps {
 
 const WeatherWidget: React.FC<WeatherWidgetProps> = ({ language }) => {
   const {location, errorMsg} = useUserLocation();
+  const { t } = useLanguage();
 
   const { weatherdata, forecast, loading, error } = useWeather(location?.lat || 30.2110, location?.lon || 74.9455); 
   const weather = {
@@ -50,14 +52,14 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ language }) => {
         <View style={styles.statItem}>
           <Droplets size={18} color="#bfdbfe" />
           <View>
-            <Text style={styles.statLabel}>Humidity</Text>
+            <Text style={styles.statLabel}>{t('weather.humidity')}</Text>
             <Text style={styles.statValue}>{weather.humidity}</Text>
           </View>
         </View>
         <View style={styles.statItem}>
           <Wind size={18} color="#bfdbfe" />
           <View>
-            <Text style={styles.statLabel}>Wind</Text>
+            <Text style={styles.statLabel}>{t('weather.wind')}</Text>
             <Text style={styles.statValue}>{weather.wind} </Text>
           </View>
         </View>

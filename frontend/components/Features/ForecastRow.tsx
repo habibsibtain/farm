@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, Image, ScrollView, StyleSheet } from "react-native";
 import { ForecastDay } from "../../hooks/useWeather";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface ForecastRowProps {
   forecast: ForecastDay[];
@@ -24,6 +25,7 @@ const getIconUrl = (iconCode: string): string =>
  *   2. The component will prefer mlForecast over the API forecast.
  */
 const ForecastRow: React.FC<ForecastRowProps> = ({ forecast, mlForecast }) => {
+  const { t } = useLanguage();
   const data = mlForecast && mlForecast.length > 0 ? mlForecast : forecast;
 
   if (!data || data.length === 0) return null;
@@ -52,7 +54,7 @@ const ForecastRow: React.FC<ForecastRowProps> = ({ forecast, mlForecast }) => {
 
             {/* Day name at bottom */}
             <Text style={styles.dayText}>
-              {index === 0 ? "Tmrw" : day.day}
+              {index === 0 ? t("weather.tomorrow") : day.day}
             </Text>
           </View>
         ))}

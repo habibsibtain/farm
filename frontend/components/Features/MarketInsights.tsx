@@ -98,9 +98,9 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
   };
 
   const getAdvisoryLabel = (advisory: string) => {
-    if (advisory === 'sell') return t('market.sellNow');
-    if (advisory === 'hold') return t('market.hold');
-    return t('market.retry');
+    if (advisory === 'sell') return t('market.advisorySell');
+    if (advisory === 'hold') return t('market.advisoryHold');
+    return t('market.advisoryWait');
   };
 
   const maxForecastPrice = (forecast: CropForecast) => {
@@ -114,7 +114,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
       return (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#16a34a" />
-          <Text style={styles.loadingText}>Loading...</Text>
+          <Text style={styles.loadingText}>{t('common.loading')}</Text>
         </View>
       );
     }
@@ -148,7 +148,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
               </View>
               <View style={styles.priceContainer}>
                 <Text style={styles.price}>{item.price}</Text>
-                <Text style={styles.unit}>INR / Quintal</Text>
+                <Text style={styles.unit}>{t('market.inrPerQuintal')}</Text>
               </View>
             </View>
             <View style={styles.cardFooter}>
@@ -212,7 +212,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
               <View style={styles.fcHeader}>
                 <View style={styles.fcLeft}>
                   <Text style={styles.fcCropName}>
-                    {fc.crop_hindi || fc.crop.charAt(0).toUpperCase() + fc.crop.slice(1)}
+                    {language !== Language.ENGLISH ? (fc.crop_hindi || fc.crop) : fc.crop.charAt(0).toUpperCase() + fc.crop.slice(1)}
                   </Text>
                   <View style={[
                     styles.fcTrendBadge,
@@ -233,7 +233,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
                   <Text style={styles.fcCurrentPrice}>
                     {'\u20B9'}{Math.round(fc.current_price)}
                   </Text>
-                  <Text style={styles.fcUnit}>/quintal</Text>
+                  <Text style={styles.fcUnit}>{t('market.perQuintal')}</Text>
                 </View>
               </View>
 
@@ -246,7 +246,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
                   </Text>
                 </View>
                 <Text style={styles.fcAdvisoryHint}>
-                  {fc.advisory_text_hindi || fc.advisory_text}
+                  {language !== Language.ENGLISH ? (fc.advisory_text_hindi || fc.advisory_text) : fc.advisory_text}
                 </Text>
               </View>
 
@@ -256,7 +256,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
                   <View style={styles.fcExpandHeader}>
                     <BarChart3 size={14} color="#64748b" />
                     <Text style={styles.fcExpandTitle}>
-                      Monthly Price Forecast
+                      {t('market.monthlyForecast')}
                     </Text>
                   </View>
 
@@ -264,7 +264,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
                   <View style={styles.fcMonthRow}>
                     <Calendar size={12} color="#94a3b8" />
                     <Text style={styles.fcMonthLabel}>
-                      Today
+                      {t('market.today')}
                     </Text>
                     <View style={styles.fcBarContainer}>
                       <View
@@ -309,7 +309,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
                     <View style={styles.fcConfidence}>
                       <ShieldCheck size={12} color="#94a3b8" />
                       <Text style={styles.fcConfidenceText}>
-                        Expected range: 
+                        {t('market.expectedRange')}{' '}
                         {'\u20B9'}{Math.round(fc.monthly_forecast[fc.monthly_forecast.length - 1].price_low)}
                         {' - '}
                         {'\u20B9'}{Math.round(fc.monthly_forecast[fc.monthly_forecast.length - 1].price_high)}
@@ -321,7 +321,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
                   {fc.best_sell_month && (
                     <View style={styles.fcBestSell}>
                       <Text style={styles.fcBestSellLabel}>
-                        Best time to sell:
+                        {t('market.bestTimeToSell')}
                       </Text>
                       <Text style={styles.fcBestSellValue}>
                         {fc.best_sell_month} @ {'\u20B9'}{Math.round(fc.best_sell_price || 0)}/q
@@ -334,7 +334,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
               {/* Tap hint */}
               {!isExpanded && (
                 <Text style={styles.fcTapHint}>
-                  Tap for monthly forecast
+                  {t('market.tapForForecast')}
                 </Text>
               )}
             </TouchableOpacity>
@@ -343,7 +343,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
 
         <View style={styles.disclaimerContainer}>
           <Text style={styles.disclaimer}>
-            {t('market.disclaimer') || 'Disclaimer: These are AI/ML predictions. Actual prices may vary.'}
+            {t('market.forecastDisclaimer')}
           </Text>
         </View>
       </View>
@@ -386,7 +386,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
         >
           <Sprout size={14} color={activeTab === 'current' ? '#2563eb' : '#94a3b8'} />
           <Text style={[styles.tabText, activeTab === 'current' && styles.tabTextActive]}>
-            Current Prices
+            {t('market.currentPrices')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -395,7 +395,7 @@ const MarketInsights: React.FC<MarketInsightsProps> = ({ language }) => {
         >
           <BarChart3 size={14} color={activeTab === 'forecast' ? '#2563eb' : '#94a3b8'} />
           <Text style={[styles.tabText, activeTab === 'forecast' && styles.tabTextActive]}>
-            Price Forecast
+            {t('market.priceForecast')}
           </Text>
         </TouchableOpacity>
       </View>

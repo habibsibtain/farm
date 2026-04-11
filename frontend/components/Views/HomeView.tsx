@@ -62,7 +62,7 @@ const HomeView: React.FC<HomeViewProps> = ({ language, setView, userName, farmCo
         <View style={styles.farmBadge}>
           <Sprout size={16} color="#15803d" />
           <Text style={styles.farmBadgeText}>
-            🌾 {farmCount} farm{farmCount > 1 ? 's' : ''} registered
+            🌾 {t('home.farmsRegistered', { count: farmCount })}
           </Text>
         </View>
       )}

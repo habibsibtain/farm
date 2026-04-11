@@ -20,6 +20,7 @@ import {
   CropRecommendResult,
 } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
+import { useLanguage } from "../../context/LanguageContext";
 import {
   User,
   LogOut,
@@ -44,6 +45,7 @@ interface ProfileViewProps {
 const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
   const router = useRouter();
   const { status, user, signOut } = useAuth();
+  const { t } = useLanguage();
 
   const [farms, setFarms] = useState<ApiFarm[]>([]);
   const [farmsLoading, setFarmsLoading] = useState(false);
@@ -61,27 +63,27 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
   const [saveFarmError, setSaveFarmError] = useState<string | null>(null);
 
   // Crop recommendation state
-  const [recLoading, setRecLoading] = useState<string | null>(null); // farmId being loaded
+  const [recLoading, setRecLoading] = useState<string | null>(null);
   const [recResult, setRecResult] = useState<{ [farmId: string]: CropRecommendResult }>({});
 
   const isHindi = language === Language.HINDI;
 
   const soilOptions = [
-    { value: "Alluvial", label: isHindi ? "दोमट / नदी की मिट्टी" : "Alluvial" },
-    { value: "Black", label: isHindi ? "काली मिट्टी" : "Black" },
-    { value: "Red", label: isHindi ? "लाल मिट्टी" : "Red" },
-    { value: "Laterite", label: isHindi ? "लैटराइट" : "Laterite" },
-    { value: "Sandy", label: isHindi ? "रेतीली" : "Sandy" },
-    { value: "Loamy", label: isHindi ? "लोमी" : "Loamy" },
+    { value: "Alluvial", label: t('profile.soilAlluvial') },
+    { value: "Black", label: t('profile.soilBlack') },
+    { value: "Red", label: t('profile.soilRed') },
+    { value: "Laterite", label: t('profile.soilLaterite') },
+    { value: "Sandy", label: t('profile.soilSandy') },
+    { value: "Loamy", label: t('profile.soilLoamy') },
   ];
 
   const irrigationOptions = [
-    { value: "Canal", label: isHindi ? "नहर" : "Canal" },
-    { value: "Tube well", label: isHindi ? "ट्यूबवेल" : "Tube well" },
-    { value: "River", label: isHindi ? "नदी" : "River" },
-    { value: "Rainfed", label: isHindi ? "केवल बारिश" : "Rainfed" },
-    { value: "Sprinkler", label: isHindi ? "स्प्रिंकलर" : "Sprinkler" },
-    { value: "Drip", label: isHindi ? "ड्रिप" : "Drip" },
+    { value: "Canal", label: t('profile.irrigCanal') },
+    { value: "Tube well", label: t('profile.irrigTubewell') },
+    { value: "River", label: t('profile.irrigRiver') },
+    { value: "Rainfed", label: t('profile.irrigRainfed') },
+    { value: "Sprinkler", label: t('profile.irrigSprinkler') },
+    { value: "Drip", label: t('profile.irrigDrip') },
   ];
 
   const resetFarmForm = () => {
@@ -103,11 +105,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
       setFarms(data.farms || []);
     } catch (error) {
       console.error("Error loading farms", error);
-      setFarmsError(
-        isHindi
-          ? "हम अभी आपके खेतों की जानकारी नहीं ला सके। इंटरनेट ठीक होने पर फिर कोशिश करें।"
-          : "We couldn't load your farms right now. Please try again when your internet is better."
-      );
+      setFarmsError(t('common.noInternet'));
     } finally {
       setFarmsLoading(false);
     }
@@ -138,14 +136,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
 
   const handleDeleteFarm = (farmId: string, farmName: string) => {
     Alert.alert(
-      isHindi ? "खेत हटाएं" : "Remove farm",
-      isHindi
-        ? `क्या आप "${farmName}" को हटाना चाहते हैं?`
-        : `Are you sure you want to remove "${farmName}"?`,
+      t('profile.deleteFarm'),
+      t('profile.deleteFarmConfirm', { name: farmName }),
       [
-        { text: isHindi ? "रद्द करें" : "Cancel", style: "cancel" },
+        { text: t('common.cancel'), style: "cancel" },
         {
-          text: isHindi ? "हटाएं" : "Remove",
+          text: t('profile.remove'),
           style: "destructive",
           onPress: async () => {
             try {
@@ -154,10 +150,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
             } catch (error) {
               console.error("Delete farm error", error);
               Alert.alert(
-                isHindi ? "त्रुटि" : "Error",
-                isHindi
-                  ? "खेत हटाने में समस्या हुई। कृपया दोबारा कोशिश करें।"
-                  : "Failed to remove the farm. Please try again."
+                t('profile.errorTitle'),
+                t('common.noInternet')
               );
             }
           },
@@ -176,21 +170,13 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
       !irrigationType ||
       !cropsText.trim()
     ) {
-      setSaveFarmError(
-        isHindi
-          ? "कृपया खेत की सारी जानकारी भरें ताकि हम सही सलाह दे सकें।"
-          : "Please fill all details about your land so we can guide you better."
-      );
+      setSaveFarmError(t('profile.fillAllDetails'));
       return;
     }
 
     const numericSize = Number(landSize);
     if (Number.isNaN(numericSize) || numericSize <= 0) {
-      setSaveFarmError(
-        isHindi
-          ? "भू-क्षेत्र (एकड़ में) सही से भरें।"
-          : "Please enter a valid land size (in acres)."
-      );
+      setSaveFarmError(t('profile.validLandSize'));
       return;
     }
 
@@ -217,11 +203,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
       await loadFarms();
     } catch (error) {
       console.error("Save farm error", error);
-      setSaveFarmError(
-        isHindi
-          ? "हम अभी आपका खेत नहीं जोड़ पाए। इंटरनेट ठीक होने पर फिर कोशिश करें।"
-          : "We couldn't save your farm right now. Please try again when your internet is stable."
-      );
+      setSaveFarmError(t('common.noInternet'));
     } finally {
       setSaveFarmLoading(false);
     }
@@ -242,8 +224,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
       setRecResult((prev) => ({ ...prev, [farm._id]: result }));
     } catch (error: any) {
       Alert.alert(
-        isHindi ? "त्रुटि" : "Error",
-        error.message || (isHindi ? "सुझाव लाने में समस्या हुई।" : "Failed to get recommendations.")
+        t('profile.errorTitle'),
+        error.message || t('profile.failedRecommendations')
       );
     } finally {
       setRecLoading(null);
@@ -268,7 +250,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
     <View style={styles.card}>
       <View style={styles.cardHeaderRow}>
         <Text style={styles.cardTitle}>
-          {isHindi ? "आपके खेत" : "Your farms"}
+          {t('profile.yourFarms')}
         </Text>
         <TouchableOpacity
           onPress={() => {
@@ -279,7 +261,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
         >
           <PlusCircle size={16} color="#16a34a" />
           <Text style={styles.chipButtonText}>
-            {isHindi ? "खेत जोड़ें" : "Add your farm"}
+            {t('profile.addFarm')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -288,9 +270,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
         <View style={styles.centerBox}>
           <ActivityIndicator color="#16a34a" />
           <Text style={styles.helperText}>
-            {isHindi
-              ? "आपके खेत लोड हो रहे हैं..."
-              : "Loading your farms..."}
+            {t('common.loading')}
           </Text>
         </View>
       ) : farmsError ? (
@@ -301,12 +281,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
         <View style={styles.emptyState}>
           <Sprout size={36} color="#16a34a" />
           <Text style={styles.emptyTitle}>
-            {isHindi ? "अभी कोई खेत नहीं जुड़ा" : "No farms added yet"}
+            {t('profile.noFarmsTitle')}
           </Text>
           <Text style={styles.emptySubtitle}>
-            {isHindi
-              ? "अपने खेत को जोड़ें ताकि मिट्टी और फसल की सलाह हमेशा आपके पास रहे।"
-              : "Add your land so soil and crop advice stays saved for you."}
+            {t('profile.noFarmsSubtitle')}
           </Text>
           <TouchableOpacity
             onPress={() => {
@@ -316,7 +294,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
             style={styles.secondaryButton}
           >
             <Text style={styles.secondaryButtonText}>
-              {isHindi ? "चलें, खेत जोड़ें" : "Let's add your farm"}
+              {t('profile.letsAddFarm')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -331,29 +309,29 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
                 </Text>
               </View>
               <Text style={styles.farmMeta}>
-                {isHindi ? "राज्य: " : "State: "}
+                {t('profile.state')}: 
                 <Text style={styles.farmMetaValue}>
                   {farm.location.state}
                 </Text>
               </Text>
               <Text style={styles.farmMeta}>
-                {isHindi ? "भूमि: " : "Land: "}
+                {t('profile.land')}: 
                 <Text style={styles.farmMetaValue}>
-                  {farm.landsize} {isHindi ? "एकड़" : "acres"}
+                  {farm.landsize} {t('profile.acres')}
                 </Text>
               </Text>
               <Text style={styles.farmMeta}>
-                {isHindi ? "मिट्टी: " : "Soil: "}
+                {t('profile.soil')}: 
                 <Text style={styles.farmMetaValue}>{farm.soiltype}</Text>
               </Text>
               <Text style={styles.farmMeta}>
-                {isHindi ? "सिंचाई: " : "Irrigation: "}
+                {t('profile.irrigation')}: 
                 <Text style={styles.farmMetaValue}>
                   {farm.irrigationtype}
                 </Text>
               </Text>
               <Text style={styles.farmMeta}>
-                {isHindi ? "मुख्य फसलें: " : "Main crops: "}
+                {t('profile.crops')}: 
                 <Text style={styles.farmMetaValue}>
                   {farm.cropsgrown.join(", ")}
                 </Text>
@@ -362,9 +340,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
               <View style={styles.farmFooterNote}>
                 <View style={styles.farmFooterRow}>
                   <Text style={styles.farmFooterText}>
-                    {isHindi
-                      ? "जब भी आप सलाह लेंगे, हम इस खेत को ध्यान में रखेंगे।"
-                      : "Future advice will gently consider this land's details."}
+                    {t('profile.farmFooter')}
                   </Text>
                   <TouchableOpacity
                     onPress={() =>
@@ -393,8 +369,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
                 )}
                 <Text style={styles.recBtnText}>
                   {recLoading === farm._id
-                    ? (isHindi ? "सुझाव ला रहे हैं..." : "Getting suggestions...")
-                    : (isHindi ? "फसल सुझाव पाएं" : "Get Crop Suggestions")}
+                    ? t('profile.gettingSuggestions')
+                    : t('profile.getCropSuggestions')}
                 </Text>
               </TouchableOpacity>
 
@@ -406,7 +382,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
                     <View style={styles.recSeasonBadge}>
                       <Sun size={14} color="#b45309" />
                       <Text style={styles.recSeasonText}>
-                        {recResult[farm._id].current_season} {isHindi ? "मौसम" : "Season"}
+                        {recResult[farm._id].current_season} {t('profile.season')}
                       </Text>
                     </View>
                     {recResult[farm._id].weather && (
@@ -435,7 +411,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
 
                   {/* Top-3 Crops */}
                   <Text style={styles.recSectionTitle}>
-                    {isHindi ? "सुझाई गई फसलें" : "Recommended Crops"}
+                    {t('profile.recommendedCrops')}
                   </Text>
                   {recResult[farm._id].recommendations.slice(0, 3).map((rec, idx) => (
                     <View key={idx} style={styles.recCropItem}>
@@ -453,7 +429,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
                         </View>
                         <View style={styles.recCropInfo}>
                           <Text style={styles.recCropName}>
-                            {isHindi ? rec.crop_hindi : rec.crop.charAt(0).toUpperCase() + rec.crop.slice(1)}
+                            {language !== Language.ENGLISH ? (rec.crop_hindi || rec.crop) : rec.crop.charAt(0).toUpperCase() + rec.crop.slice(1)}
                           </Text>
                           <View style={styles.recCropTags}>
                             <View style={styles.recTag}>
@@ -470,7 +446,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
                               <View style={[styles.recTag, styles.recTagSeasonal]}>
                                 <Leaf size={10} color="#15803d" />
                                 <Text style={[styles.recTagText, { color: "#15803d" }]}>
-                                  {isHindi ? "मौसमी" : "In Season"}
+                                  {t('profile.inSeason')}
                                 </Text>
                               </View>
                             )}
@@ -499,9 +475,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
                   <View style={styles.recFooter}>
                     <TrendingUp size={12} color="#94a3b8" />
                     <Text style={styles.recFooterText}>
-                      {isHindi
-                        ? `मॉडल सटीकता: ${(recResult[farm._id].model_accuracy * 100).toFixed(0)}%`
-                        : `Model accuracy: ${(recResult[farm._id].model_accuracy * 100).toFixed(0)}%`}
+                      {t('profile.modelAccuracy', { accuracy: (recResult[farm._id].model_accuracy * 100).toFixed(0) })}
                     </Text>
                   </View>
                 </View>
@@ -519,63 +493,61 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
     return (
       <View style={styles.card}>
         <Text style={styles.cardTitle}>
-          {isHindi ? "खेत की जानकारी" : "Tell us about your farm"}
+          {t('profile.tellUsAbout')}
         </Text>
         <Text style={styles.cardSubtitle}>
-          {isHindi
-            ? "छोटे-छोटे चरणों में जानकारी भरें।"
-            : "Fill a few simple steps about your land."}
+          {t('profile.formSubtitle')}
         </Text>
 
         <Text style={styles.stepLabel}>
-          {isHindi ? "चरण 1: जगह" : "Step 1: Location"}
+          {t('profile.step1Location')}
         </Text>
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>
-            {isHindi ? "राज्य" : "State"}
+            {t('profile.state')}
           </Text>
           <TextInput
             value={landState}
             onChangeText={setLandState}
-            placeholder={isHindi ? "जैसे पंजाब" : "e.g. Punjab"}
+            placeholder={t('profile.statePlaceholder')}
             style={styles.input}
           />
         </View>
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>
-            {isHindi ? "ज़िला" : "District"}
+            {t('profile.district')}
           </Text>
           <TextInput
             value={landDistrict}
             onChangeText={setLandDistrict}
-            placeholder={isHindi ? "जैसे बठिंडा" : "e.g. Bathinda"}
+            placeholder={t('profile.districtPlaceholder')}
             style={styles.input}
           />
         </View>
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>
-            {isHindi ? "गाँव" : "Village"}
+            {t('profile.village')}
           </Text>
           <TextInput
             value={landVillage}
             onChangeText={setLandVillage}
-            placeholder={isHindi ? "अपने गाँव का नाम" : "Your village name"}
+            placeholder={t('profile.villagePlaceholder')}
             style={styles.input}
           />
         </View>
 
         <Text style={styles.stepLabel}>
-          {isHindi ? "चरण 2: खेत" : "Step 2: Land"}
+          {t('profile.step2LandDetails')}
         </Text>
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>
-            {isHindi ? "भू-क्षेत्र (एकड़)" : "Land size (acres)"}
+            {t('profile.landSize')}
           </Text>
           <TextInput
             value={landSize}
             onChangeText={setLandSize}
             keyboardType="numeric"
-            placeholder={isHindi ? "जैसे 2.5" : "e.g. 2.5"}
+            placeholder={t('profile.landSizePlaceholder')}
             style={styles.input}
           />
         </View>
@@ -625,20 +597,16 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
         </View>
 
         <Text style={styles.stepLabel}>
-          {isHindi ? "चरण 3: फसलें" : "Step 3: Crops"}
+          {t('profile.step3Crops')}
         </Text>
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>
-            {isHindi ? "मुख्य फसलें" : "Main crops"}
+            {t('profile.mainCrops')}
           </Text>
           <TextInput
             value={cropsText}
             onChangeText={setCropsText}
-            placeholder={
-              isHindi
-                ? "जैसे गेहूँ, सरसों (कॉमा से अलग करें)"
-                : "e.g. Wheat, Mustard (separate with commas)"
-            }
+            placeholder={t('profile.cropsPlaceholder')}
             style={styles.input}
           />
         </View>
@@ -656,7 +624,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
             style={styles.lightButton}
           >
             <Text style={styles.lightButtonText}>
-              {isHindi ? "रद्द करें" : "Cancel"}
+              {t('profile.cancel')}
             </Text>
           </TouchableOpacity>
 
@@ -673,7 +641,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
               <ActivityIndicator color="#ffffff" />
             ) : (
               <Text style={styles.primaryButtonText}>
-                {isHindi ? "खेत सहेजें" : "Save farm"}
+                {t('profile.saveFarm')}
               </Text>
             )}
           </TouchableOpacity>
@@ -701,12 +669,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
           </View>
           <View>
             <Text style={styles.headerTitle}>
-              {isHindi ? "आपकी प्रोफ़ाइल" : "Your profile"}
+              {t('profile.headerTitle')}
             </Text>
             <Text style={styles.headerSubtitle}>
-              {isHindi
-                ? "यह ऐप आपके खेत के लिए आपका साथी है।"
-                : "This app stays by your side for your farm."}
+              {t('profile.headerSubtitle')}
             </Text>
           </View>
         </View>
@@ -729,9 +695,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
             <Text style={styles.profileName}>{user.name}</Text>
             <Text style={styles.profilePhone}>{user.phone}</Text>
             <Text style={styles.profileNote}>
-              {isHindi
-                ? "आपका खाता बन चुका है। अब खेत जोड़कर आगे बढ़ें।"
-                : "Your account is ready. Add your land to get better guidance."}
+              {t('profile.accountReady')}
             </Text>
           </View>
         </View>
@@ -743,9 +707,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
       <View style={styles.softInfoCard}>
         <Sprout size={22} color="#16a34a" />
         <Text style={styles.softInfoText}>
-          {isHindi
-            ? "जल्द ही यहाँ आपकी मिट्टी की रिपोर्ट और सलाह का पूरा इतिहास दिखेगा।"
-            : "Soon, this space will gently show your soil reports and past advice in one place."}
+          {t('profile.futureInfo')}
         </Text>
       </View>
       </KeyboardAwareScrollView>
