@@ -16,6 +16,8 @@ import { Language } from "../../types";
 import {
   farmService,
   ApiFarm,
+  cropRecommendService,
+  CropRecommendResult,
 } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -25,6 +27,14 @@ import {
   Sprout,
   PlusCircle,
   Trash2,
+  Lightbulb,
+  Droplets,
+  Sun,
+  Clock,
+  Leaf,
+  TrendingUp,
+  Thermometer,
+  CloudRain,
 } from "lucide-react-native";
 
 interface ProfileViewProps {
@@ -49,6 +59,10 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
   const [cropsText, setCropsText] = useState("");
   const [saveFarmLoading, setSaveFarmLoading] = useState(false);
   const [saveFarmError, setSaveFarmError] = useState<string | null>(null);
+
+  // Crop recommendation state
+  const [recLoading, setRecLoading] = useState<string | null>(null); // farmId being loaded
+  const [recResult, setRecResult] = useState<{ [farmId: string]: CropRecommendResult }>({});
 
   const isHindi = language === Language.HINDI;
 
@@ -213,6 +227,29 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
     }
   };
 
+  // ── Crop Recommendation Handler ───────────────────────────────────
+  const handleGetRecommendations = async (farm: ApiFarm) => {
+    setRecLoading(farm._id);
+    try {
+      const result = await cropRecommendService.suggest({
+        soil_type: farm.soiltype,
+        state: farm.location.state,
+        district: farm.location.district,
+        land_size: farm.landsize,
+        irrigation_type: farm.irrigationtype,
+        crops_grown: farm.cropsgrown,
+      });
+      setRecResult((prev) => ({ ...prev, [farm._id]: result }));
+    } catch (error: any) {
+      Alert.alert(
+        isHindi ? "त्रुटि" : "Error",
+        error.message || (isHindi ? "सुझाव लाने में समस्या हुई।" : "Failed to get recommendations.")
+      );
+    } finally {
+      setRecLoading(null);
+    }
+  };
+
   // Loading state
   if (status === "loading") {
     return (
@@ -342,6 +379,133 @@ const ProfileView: React.FC<ProfileViewProps> = ({ language }) => {
                   </TouchableOpacity>
                 </View>
               </View>
+
+              {/* Get Recommendations Button */}
+              <TouchableOpacity
+                onPress={() => handleGetRecommendations(farm)}
+                disabled={recLoading === farm._id}
+                style={[styles.recBtn, recLoading === farm._id && styles.recBtnDisabled]}
+              >
+                {recLoading === farm._id ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Lightbulb size={16} color="#fff" />
+                )}
+                <Text style={styles.recBtnText}>
+                  {recLoading === farm._id
+                    ? (isHindi ? "सुझाव ला रहे हैं..." : "Getting suggestions...")
+                    : (isHindi ? "फसल सुझाव पाएं" : "Get Crop Suggestions")}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Recommendation Results */}
+              {recResult[farm._id] && (
+                <View style={styles.recCard}>
+                  {/* Season + Weather Header */}
+                  <View style={styles.recHeader}>
+                    <View style={styles.recSeasonBadge}>
+                      <Sun size={14} color="#b45309" />
+                      <Text style={styles.recSeasonText}>
+                        {recResult[farm._id].current_season} {isHindi ? "मौसम" : "Season"}
+                      </Text>
+                    </View>
+                    {recResult[farm._id].weather && (
+                      <View style={styles.recWeatherRow}>
+                        <View style={styles.recWeatherItem}>
+                          <Thermometer size={12} color="#64748b" />
+                          <Text style={styles.recWeatherText}>
+                            {recResult[farm._id].weather.temperature}°C
+                          </Text>
+                        </View>
+                        <View style={styles.recWeatherItem}>
+                          <Droplets size={12} color="#64748b" />
+                          <Text style={styles.recWeatherText}>
+                            {recResult[farm._id].weather.humidity}%
+                          </Text>
+                        </View>
+                        <View style={styles.recWeatherItem}>
+                          <CloudRain size={12} color="#64748b" />
+                          <Text style={styles.recWeatherText}>
+                            {recResult[farm._id].weather.rainfall}mm
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Top-3 Crops */}
+                  <Text style={styles.recSectionTitle}>
+                    {isHindi ? "सुझाई गई फसलें" : "Recommended Crops"}
+                  </Text>
+                  {recResult[farm._id].recommendations.slice(0, 3).map((rec, idx) => (
+                    <View key={idx} style={styles.recCropItem}>
+                      <View style={styles.recCropLeft}>
+                        <View style={[
+                          styles.recRank,
+                          idx === 0 && styles.recRankFirst,
+                        ]}>
+                          <Text style={[
+                            styles.recRankText,
+                            idx === 0 && styles.recRankTextFirst,
+                          ]}>
+                            {idx + 1}
+                          </Text>
+                        </View>
+                        <View style={styles.recCropInfo}>
+                          <Text style={styles.recCropName}>
+                            {isHindi ? rec.crop_hindi : rec.crop.charAt(0).toUpperCase() + rec.crop.slice(1)}
+                          </Text>
+                          <View style={styles.recCropTags}>
+                            <View style={styles.recTag}>
+                              <Clock size={10} color="#64748b" />
+                              <Text style={styles.recTagText}>{rec.duration}</Text>
+                            </View>
+                            <View style={styles.recTag}>
+                              <Droplets size={10} color="#64748b" />
+                              <Text style={styles.recTagText}>
+                                {rec.water_requirement}
+                              </Text>
+                            </View>
+                            {rec.is_seasonal && (
+                              <View style={[styles.recTag, styles.recTagSeasonal]}>
+                                <Leaf size={10} color="#15803d" />
+                                <Text style={[styles.recTagText, { color: "#15803d" }]}>
+                                  {isHindi ? "मौसमी" : "In Season"}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                        </View>
+                      </View>
+                      <View style={styles.recSuitability}>
+                        <Text style={styles.recSuitabilityValue}>
+                          {rec.suitability}%
+                        </Text>
+                        <View style={styles.recBarBg}>
+                          <View
+                            style={[
+                              styles.recBarFill,
+                              { width: `${Math.min(rec.suitability, 100)}%` },
+                              rec.suitability >= 30 && styles.recBarHigh,
+                              rec.suitability >= 15 && rec.suitability < 30 && styles.recBarMed,
+                            ]}
+                          />
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+
+                  {/* Model accuracy footer */}
+                  <View style={styles.recFooter}>
+                    <TrendingUp size={12} color="#94a3b8" />
+                    <Text style={styles.recFooterText}>
+                      {isHindi
+                        ? `मॉडल सटीकता: ${(recResult[farm._id].model_accuracy * 100).toFixed(0)}%`
+                        : `Model accuracy: ${(recResult[farm._id].model_accuracy * 100).toFixed(0)}%`}
+                    </Text>
+                  </View>
+                </View>
+              )}
             </View>
           ))}
         </>
@@ -902,6 +1066,101 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#854d0e",
   },
+
+  // ── Crop Recommendation Styles ──────────────────────────────────
+  recBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 10,
+    backgroundColor: "#16a34a",
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  recBtnDisabled: { opacity: 0.7 },
+  recBtnText: { color: "#fff", fontSize: 13, fontWeight: "600" },
+
+  recCard: {
+    marginTop: 12,
+    backgroundColor: "#ffffff",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    overflow: "hidden" as const,
+  },
+  recHeader: {
+    backgroundColor: "#fffbeb",
+    padding: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  recSeasonBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#fef3c7",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  recSeasonText: { fontSize: 12, fontWeight: "700", color: "#92400e" },
+  recWeatherRow: { flexDirection: "row", gap: 12 },
+  recWeatherItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  recWeatherText: { fontSize: 11, color: "#64748b" },
+
+  recSectionTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#0f172a",
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 6,
+  },
+
+  recCropItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between" as const,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f8fafc",
+  },
+  recCropLeft: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
+  recRank: {
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: "#f1f5f9",
+    alignItems: "center", justifyContent: "center",
+  },
+  recRankFirst: { backgroundColor: "#dcfce7" },
+  recRankText: { fontSize: 12, fontWeight: "700", color: "#64748b" },
+  recRankTextFirst: { color: "#15803d" },
+  recCropInfo: { flex: 1 },
+  recCropName: { fontSize: 14, fontWeight: "700", color: "#0f172a" },
+  recCropTags: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 },
+  recTag: {
+    flexDirection: "row", alignItems: "center", gap: 3,
+    backgroundColor: "#f1f5f9", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6,
+  },
+  recTagSeasonal: { backgroundColor: "#dcfce7" },
+  recTagText: { fontSize: 10, color: "#64748b" },
+
+  recSuitability: { alignItems: "flex-end" as const, minWidth: 60 },
+  recSuitabilityValue: { fontSize: 14, fontWeight: "800", color: "#16a34a", marginBottom: 4 },
+  recBarBg: { width: 50, height: 5, backgroundColor: "#f1f5f9", borderRadius: 3, overflow: "hidden" as const },
+  recBarFill: { height: "100%", backgroundColor: "#94a3b8", borderRadius: 3 },
+  recBarHigh: { backgroundColor: "#16a34a" },
+  recBarMed: { backgroundColor: "#f59e0b" },
+
+  recFooter: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    padding: 10, borderTopWidth: 1, borderTopColor: "#f1f5f9",
+  },
+  recFooterText: { fontSize: 11, color: "#94a3b8" },
 });
 
 export default ProfileView;
