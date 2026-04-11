@@ -29,19 +29,18 @@ import { Audio } from "expo-av";
 import { readAsStringAsync, EncodingType } from "expo-file-system";
 import { ChatMessage, Language } from "../../types";
 import { generateCropAdvisory, transcribeAudio } from "../../services/geminiService";
+import { useLanguage } from "../../context/LanguageContext";
 
 interface ChatAssistantProps {
   language: Language;
 }
 
 const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
+  const { t } = useLanguage();
   const getInitialMessage = (lang: Language): ChatMessage => ({
     id: "1",
     role: "model",
-    text:
-      lang === Language.HINDI
-        ? "नमस्ते! मैं किसान सहायक हूँ। मैं आपकी फसल की मदद कैसे कर सकता हूँ?"
-        : "Namaste! I am Kisan Sahayak. How can I help you with your crops today?",
+    text: t('chat.initialMessage'),
     timestamp: new Date(),
   });
 
@@ -103,14 +102,13 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
   };
 
   const handleClearChat = () => {
-    const title = language === Language.HINDI ? "चैट साफ़ करें" : "Clear Chat";
-    const message =
-      language === Language.HINDI ? "क्या आप सुनिश्चित हैं?" : "Are you sure?";
+    const title = t('chat.clearChat');
+    const message = t('chat.clearChatConfirm');
 
     Alert.alert(title, message, [
-      { text: "Cancel", style: "cancel" },
+      { text: t('common.cancel'), style: "cancel" },
       {
-        text: "OK",
+        text: t('common.ok'),
         style: "destructive",
         onPress: () => {
           setMessages([getInitialMessage(language)]);
@@ -127,10 +125,8 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
       const permission = await Audio.requestPermissionsAsync();
       if (!permission.granted) {
         Alert.alert(
-          language === Language.HINDI ? "अनुमति आवश्यक" : "Permission Required",
-          language === Language.HINDI
-            ? "वॉइस इनपुट के लिए माइक्रोफ़ोन की अनुमति दें।"
-            : "Please allow microphone access for voice input."
+          t('chat.micPermission'),
+          t('chat.micPermissionMsg')
         );
         return;
       }
@@ -187,10 +183,8 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
         setInput((prev) => (prev ? prev + " " + transcribedText : transcribedText));
       } else {
         Alert.alert(
-          language === Language.HINDI ? "सुनाई नहीं दिया" : "Couldn't hear",
-          language === Language.HINDI
-            ? "कृपया फिर से बोलें।"
-            : "Please try speaking again."
+          t('chat.couldntHear'),
+          t('chat.speakAgain')
         );
       }
     } catch (err) {
@@ -294,11 +288,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
                 autoFocus
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholder={
-                  language === Language.HINDI
-                    ? "बातचीत में खोजें..."
-                    : "Search..."
-                }
+                placeholder={t('chat.search')}
                 style={styles.searchInput}
               />
               {searchQuery.length > 0 && (
@@ -317,14 +307,14 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
               }}
             >
               <Text style={styles.cancelText}>
-                {language === Language.HINDI ? "रद्द" : "Cancel"}
+                {t('common.cancel')}
               </Text>
             </TouchableOpacity>
           </View>
         ) : (
           <>
             <Text style={styles.utilityTitle}>
-              {language === Language.HINDI ? "बातचीत" : "Conversation"}
+              {t('chat.conversation')}
             </Text>
             <View style={styles.utilityActions}>
               <TouchableOpacity
@@ -384,10 +374,10 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ language }) => {
             onChangeText={setInput}
             placeholder={
               isListening
-                ? (language === Language.HINDI ? "🔴 सुन रहा हूँ..." : "🔴 Listening...")
+                ? t('chat.listening')
                 : isTranscribing
-                  ? (language === Language.HINDI ? "टेक्स्ट में बदल रहा..." : "Transcribing...")
-                  : (language === Language.HINDI ? "यहाँ लिखें..." : "Type here...")
+                  ? t('chat.transcribing')
+                  : t('chat.typeHere')
             }
             style={styles.input}
             onSubmitEditing={handleSend}
