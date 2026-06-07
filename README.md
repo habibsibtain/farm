@@ -542,24 +542,6 @@ Returns: predicted class, confidence score, crop name, disease name, health stat
 
 ---
 
-## Screenshots
-
-> Add screenshots of your app here.
-
-| Screen | Preview |
-|---|---|
-| Home Screen | ![Home Screen](screenshots/home.png) |
-| AI Chat Assistant | ![Chat](screenshots/chat.png) |
-| Crop Disease Scanner | ![Disease Scan](screenshots/scan.png) |
-| Disease Results | ![Results](screenshots/results.png) |
-| Mandi Price Forecast | ![Market](screenshots/market.png) |
-| Farm Profile | ![Profile](screenshots/profile.png) |
-| Login / Register | ![Auth](screenshots/auth.png) |
-
-*Replace the paths above with actual screenshot images placed in a `screenshots/` directory.*
-
----
-
 ## Future Improvements
 
 - **Offline Mode**: Cache ML models on-device using ONNX Runtime for inference without internet connectivity
