@@ -564,6 +564,7 @@ Returns: predicted class, confidence score, crop name, disease name, health stat
 | **Md Sibtain Habib** ([@habibsibtain](https://github.com/habibsibtain)) | Backend & ML Lead | Backend architecture, REST API, database design, crop disease prediction ML pipeline, project setup |
 | **Ishank Dahat** ([@Ishank108](https://github.com/Ishank108)) | Frontend Developer | React Native UI, Expo setup, OTP auth flow, registration screens, profile components |
 | **Md Saif** ([@mdsaifansari1](https://github.com/mdsaifansari1)) | ML Engineer | Crop recommendation model, mandi price prediction model, frontend localization |
+| **Yogesh Khillare** ([@YogeshKhillare04](https://github.com/YogeshKhillare04)) | Backend Developer | Crop recommendation model, mandi price prediction model, frontend localization |
 
 ---
 
